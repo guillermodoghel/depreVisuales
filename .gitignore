@@ -1,0 +1,41 @@
+# C++ build files
+*.o
+*.obj
+*.gch
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+
+# Build directories
+cmake-build-debug/
+cmake-build-release/
+build/
+bin/
+lib/
+
+# CMake files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Generated files
+*.log
+*.tmp
+*.temp
+
+# IDE specific files (CLion, etc.)
+.idea/
+.vscode/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor backups and swap files
+*~
+*.swp
+*.swo
