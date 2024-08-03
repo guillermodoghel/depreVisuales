@@ -1,5 +1,6 @@
 #include "settings_window.h"
 #include "projectm_manager.h"
+#include "audio_manager.h"
 #include <imgui.h>
 #include <algorithm>
 #include <vector>
@@ -8,11 +9,13 @@
 std::string currentPreset;  // Define the currentPreset variable
 std::string currentAudioSource;  // Define the currentAudioSource variable
 static std::vector<std::string> audioInputs;
+static std::vector<int> audioDeviceIndices;  // Store the corresponding device indices
 static std::vector<std::string> filteredPresets;
 static char searchBuffer[128] = "";
 
-void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList) {
+void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList, const std::vector<int>& deviceIndices) {
     audioInputs = audioInputList;
+    audioDeviceIndices = deviceIndices;
     filteredPresets = presetList;  // Initially, no filter applied
     currentPreset = getCurrentPreset();  // Initialize the currentPreset
     if (!audioInputs.empty()) {
@@ -41,6 +44,11 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         // Add a separator line
         ImGui::Separator();
 
+        // Display current audio source
+        ImGui::Text("Current Audio Source: %s", currentAudioSource.c_str());
+
+        // Add another separator line
+        ImGui::Separator();
 
         // Search input for presets
         ImGui::Text("Search Presets");
@@ -75,17 +83,6 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
             ImGui::EndListBox();
         }
 
-        // Add a separator line before the audio input list
-        ImGui::Separator();
-
-
-        // Display current audio source
-        ImGui::Text("Current Audio Source: %s", currentAudioSource.c_str());
-
-        // Add another separator line
-        ImGui::Separator();
-
-
         // Display audio inputs in a selectable list
         ImGui::Text("Audio Inputs:");
         ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the list box to the full width of the window
@@ -94,7 +91,7 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
                 const bool isSelected = (audioInputs[i] == currentAudioSource);
                 if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
                     currentAudioSource = audioInputs[i];  // Update the currentAudioSource when selected
-                    // Handle any additional logic for changing the audio input if needed
+                    setAudioInputDevice(audioDeviceIndices[i]);  // Set the selected audio input device
                 }
             }
             ImGui::EndListBox();

@@ -3,9 +3,13 @@
 #include <iostream>
 #include <portaudio.h>
 
-#define SAMPLE_RATE 48000
 #define FRAMES_PER_BUFFER 256
 #define GAIN 10.0
+
+#define SAMPLE_RATE 44100
+
+static PaStream *stream = nullptr;
+static int sampleRate = SAMPLE_RATE;  // Initialize sample rate with a default value
 
 static int paCallback(const void *inputBuffer, void *outputBuffer,
                       unsigned long framesPerBuffer,
@@ -27,32 +31,71 @@ static int paCallback(const void *inputBuffer, void *outputBuffer,
     return paContinue;
 }
 
-bool initPortAudio() {
-    PaStream *stream;
+bool initPortAudio(int deviceIndex) {
     PaError err = Pa_Initialize();
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
         return false;
     }
 
-    err = Pa_OpenDefaultStream(&stream, 1, 0, paFloat32, SAMPLE_RATE, FRAMES_PER_BUFFER, paCallback, nullptr);
+    PaStreamParameters inputParameters;
+    inputParameters.device = (deviceIndex != -1) ? deviceIndex : Pa_GetDefaultInputDevice();
+    if (inputParameters.device == paNoDevice) {
+        std::cerr << "PortAudio error: No default input device." << std::endl;
+        return false;
+    }
+
+    const PaDeviceInfo *deviceInfo = Pa_GetDeviceInfo(inputParameters.device);
+    inputParameters.channelCount = deviceInfo->maxInputChannels;
+    if (inputParameters.channelCount < 1) {
+        std::cerr << "PortAudio error: Invalid number of channels." << std::endl;
+        return false;
+    }
+    inputParameters.sampleFormat = paFloat32;
+    inputParameters.suggestedLatency = deviceInfo->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = nullptr;
+
+    sampleRate = static_cast<int>(deviceInfo->defaultSampleRate);  // Set sample rate from the device
+
+    err = Pa_OpenStream(&stream, &inputParameters, nullptr, sampleRate, FRAMES_PER_BUFFER, paClipOff, paCallback, nullptr);
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
         return false;
     }
-    std::cout << "Default input stream opened." << std::endl;
+
+    std::cout << "Audio stream opened with device: " << deviceInfo->name << std::endl;
 
     err = Pa_StartStream(stream);
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
         return false;
     }
+
     std::cout << "Audio stream started." << std::endl;
 
     return true;
 }
 
-void listAudioInputDevices(std::vector<std::string>& audioInputList) {
+bool setAudioInputDevice(int deviceIndex) {
+    if (stream != nullptr) {
+        PaError err = Pa_StopStream(stream);
+        if (err != paNoError) {
+            std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
+            return false;
+        }
+
+        err = Pa_CloseStream(stream);
+        if (err != paNoError) {
+            std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
+            return false;
+        }
+        stream = nullptr;
+    }
+
+    return initPortAudio(deviceIndex);
+}
+
+void listAudioInputDevices(std::vector<std::string>& audioInputList, std::vector<int>& audioDeviceIndices) {
     PaError err = Pa_Initialize();
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
@@ -73,6 +116,7 @@ void listAudioInputDevices(std::vector<std::string>& audioInputList) {
             hostApiInfo = Pa_GetHostApiInfo(deviceInfo->hostApi);
             std::string deviceName = std::string(deviceInfo->name) + " (" + hostApiInfo->name + ")";
             audioInputList.push_back(deviceName);
+            audioDeviceIndices.push_back(i);  // Store the device index
         }
     }
 
@@ -80,5 +124,10 @@ void listAudioInputDevices(std::vector<std::string>& audioInputList) {
 }
 
 void cleanUpPortAudio() {
+    if (stream != nullptr) {
+        Pa_StopStream(stream);
+        Pa_CloseStream(stream);
+        stream = nullptr;
+    }
     Pa_Terminate();
 }

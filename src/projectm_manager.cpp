@@ -60,7 +60,7 @@ bool initProjectM(int width, int height) {
     }
 
     // Enable or disable shuffle
-    projectm_playlist_set_shuffle(playlistHandle, true);
+    // projectm_playlist_set_shuffle(playlistHandle, true);
     projectm_playlist_play_next(playlistHandle, false);
     currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
 
