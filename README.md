@@ -32,13 +32,13 @@ library.
    ```
    git submodule update --init --recursive
    ```
-   
+
 3. **Install Dependencies:**
 
     ```
     brew install glfw glew glm fftw pulseaudio
     ```
-   
+
 
 4. **Build and Install projectM:**
 
@@ -54,6 +54,13 @@ More instructions here https://github.com/projectM-visualizer/projectm/wiki/Buil
    make
    make install
    ```
+
+5. **Update the Presets:**
+
+check in `src/projectm_manager.cpp` the `PRESETS_PATH` dir. Im lazy to make it a cmake variable, so you have to change it pointing to the `presets` dir in the projectm repo.
+
+Wait, whats a cmake variable? Copilot just autocomplete that.. pero me da paja hacer eso, so you do it. Happy to review
+a PR that improves the dev experience. I have it working, so if you want that, now is your problem.
 
 This repo included 9000+ presets. Build, run and enjoy.
 
