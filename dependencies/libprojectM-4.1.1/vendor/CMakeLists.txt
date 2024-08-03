@@ -1,6 +1,0 @@
-if(NOT ENABLE_SYSTEM_GLM)
-    add_subdirectory(glm)
-endif()
-add_subdirectory(hlslparser)
-add_subdirectory(projectm-eval)
-add_subdirectory(SOIL2)
