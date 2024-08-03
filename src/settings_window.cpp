@@ -6,6 +6,7 @@
 #include <string>
 
 std::string currentPreset;  // Define the currentPreset variable
+std::string currentAudioSource;  // Define the currentAudioSource variable
 static std::vector<std::string> audioInputs;
 static std::vector<std::string> filteredPresets;
 static char searchBuffer[128] = "";
@@ -14,6 +15,9 @@ void InitializeSettings(const std::vector<std::string>& presetList, const std::v
     audioInputs = audioInputList;
     filteredPresets = presetList;  // Initially, no filter applied
     currentPreset = getCurrentPreset();  // Initialize the currentPreset
+    if (!audioInputs.empty()) {
+        currentAudioSource = audioInputs[0];  // Initialize the currentAudioSource with the first audio input
+    }
 }
 
 std::string truncatePath(const std::string& path) {
@@ -34,9 +38,14 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         std::string truncatedPreset = truncatePath(currentPreset);
         ImGui::Text("Current Preset: %s", truncatedPreset.c_str());
 
+        // Add a separator line
+        ImGui::Separator();
+
+
         // Search input for presets
         ImGui::Text("Search Presets");
         ImGui::SameLine();
+        ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the input box to the full width of the window
         ImGui::InputText("##SearchPresets", searchBuffer, sizeof(searchBuffer));
         std::string searchString(searchBuffer);
 
@@ -53,6 +62,7 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
 
         // Display filtered presets in a selectable list
         ImGui::Text("Presets:");
+        ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the list box to the full width of the window
         if (ImGui::BeginListBox("##preset_list")) {
             for (size_t i = 0; i < filteredPresets.size(); ++i) {
                 const bool isSelected = (filteredPresets[i] == currentPreset);
@@ -65,13 +75,26 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
             ImGui::EndListBox();
         }
 
+        // Add a separator line before the audio input list
+        ImGui::Separator();
+
+
+        // Display current audio source
+        ImGui::Text("Current Audio Source: %s", currentAudioSource.c_str());
+
+        // Add another separator line
+        ImGui::Separator();
+
+
         // Display audio inputs in a selectable list
         ImGui::Text("Audio Inputs:");
+        ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the list box to the full width of the window
         if (ImGui::BeginListBox("##audio_input_list")) {
             for (size_t i = 0; i < audioInputs.size(); ++i) {
-                const bool isSelected = false;
+                const bool isSelected = (audioInputs[i] == currentAudioSource);
                 if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
-                    // Handle selection (if needed)
+                    currentAudioSource = audioInputs[i];  // Update the currentAudioSource when selected
+                    // Handle any additional logic for changing the audio input if needed
                 }
             }
             ImGui::EndListBox();
