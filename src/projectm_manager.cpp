@@ -60,7 +60,7 @@ bool initProjectM(int width, int height) {
         return false;
     }
 
-    projectm_playlist_play_next(playlistHandle, false);
+    playNextPreset();
     currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
 
     return true;

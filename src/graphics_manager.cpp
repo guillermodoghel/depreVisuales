@@ -70,7 +70,7 @@ bool showSettingsWindow = false;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         if (getProjectMHandle() != nullptr) {
-            projectm_playlist_play_next(getPlaylistHandle(), false);
+            playNextPreset();
         }
     }
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
@@ -86,16 +86,16 @@ void showFPS(GLFWwindow* window) {
     double deltaTime = currentTime - previousTime;
     frameCount++;
 
-    if (deltaTime >= 1.0) {
+    if (deltaTime >= 2.0) {
         double fps = static_cast<double>(frameCount) / deltaTime;
 
         std::string title = "DepreVisuales - FPS: " + std::to_string(fps);
         glfwSetWindowTitle(window, title.c_str());
 
         // Check if FPS is below 30 and switch preset if it is
-        if (fps < 30.0) {
+        if (fps < 15.0) {
             if (getProjectMHandle() != nullptr) {
-                projectm_playlist_play_next(getPlaylistHandle(), true);
+                playNextPreset();
             }
         }
 
@@ -129,48 +129,6 @@ void swapBuffersAndPollEvents(GLFWwindow* window) {
     glfwPollEvents();
 }
 
-bool isFrameBlack(int width, int height, int sampleRate = 1) {
-    int checkWidth = width / sampleRate;
-    int checkHeight = height / sampleRate;
-    std::vector<GLubyte> pixels(checkWidth * checkHeight * 3);
-
-    glFinish();
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    glReadPixels(0, 0, checkWidth, checkHeight, GL_RGB, GL_UNSIGNED_BYTE, &pixels[0]);
-
-    for (int i = 0; i < checkWidth * checkHeight; ++i) {
-        int pixelIndex = i * 3;
-        if (pixels[pixelIndex] != 0 || pixels[pixelIndex + 1] != 0 || pixels[pixelIndex + 2] != 0) {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-void playNextPresetIfItsAllBlack(int frameCounter, int width, int height) {
-    static std::vector<bool> blackFrameBuffer(20, false);
-    static int currentIndex = 0;
-
-    if (frameCounter % 30 == 0) {
-        bool isBlack = isFrameBlack(width, height, 1);
-        blackFrameBuffer[currentIndex] = isBlack;
-
-        currentIndex = (currentIndex + 1) % blackFrameBuffer.size();
-
-        if (std::all_of(blackFrameBuffer.begin(), blackFrameBuffer.end(), [](bool v) { return v; })) {
-            std::cout << "Screen is all black for the last 10 checks, switching to next preset." << std::endl;
-            if (getProjectMHandle() != nullptr) {
-                playNextPreset();
-            }
-
-            std::fill(blackFrameBuffer.begin(), blackFrameBuffer.end(), false);
-            currentIndex = 0;
-        }
-    }
-}
 
 void runVisualizer(GLFWwindow* window) {
     int frameCounter = 0;
@@ -179,6 +137,8 @@ void runVisualizer(GLFWwindow* window) {
 
     try {
         while (!glfwWindowShouldClose(window)) {
+            auto startTime = std::chrono::high_resolution_clock::now();
+
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
@@ -210,6 +170,15 @@ void runVisualizer(GLFWwindow* window) {
             }
 
             swapBuffersAndPollEvents(window);
+
+            // Calculate frame time and sleep to limit frame rate
+            auto endTime = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double> frameDuration = endTime - startTime;
+            double frameTime = frameDuration.count();
+            double targetFrameTime = 1.0 / 60.0;  // Target 60 FPS
+            if (frameTime < targetFrameTime) {
+                std::this_thread::sleep_for(std::chrono::duration<double>(targetFrameTime - frameTime));
+            }
         }
     } catch (const std::exception& e) {
         std::cerr << "Error during rendering: " << e.what() << std::endl;
