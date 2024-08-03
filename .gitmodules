@@ -1,0 +1,3 @@
+[submodule "dependencies/projectm"]
+	path = dependencies/projectm
+	url = git@github.com:projectM-visualizer/projectm.git
