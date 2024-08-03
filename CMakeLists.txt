@@ -37,7 +37,7 @@ include_directories(${FREETYPE_INCLUDE_DIRS})
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 # Include directories for Dear ImGui
-set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/imgui)
+set(IMGUI_DIR ${CMAKE_SOURCE_DIR}/dependencies/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
 
 # Link directories

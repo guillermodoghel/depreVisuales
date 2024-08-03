@@ -1,3 +1,6 @@
 [submodule "dependencies/projectm"]
 	path = dependencies/projectm
 	url = git@github.com:projectM-visualizer/projectm.git
+[submodule "dependencies/imgui"]
+	path = dependencies/imgui
+	url = git@github.com:ocornut/imgui.git
