@@ -1,12 +1,17 @@
+#include <GL/glew.h>  // Ensure GLEW is included before any OpenGL headers
 #include "graphics_manager.h"
 #include "projectm_manager.h"
 #include "utils.h"
+#include "settings_window.h"
 #include <iostream>
-#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include <thread>
 #include <vector>
 #include <atomic>
 #include <algorithm>
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
 int lastWidth = 800;
 int lastHeight = 600;
@@ -22,18 +27,7 @@ bool initGLFW() {
     return true;
 }
 
-GLFWwindow *createWindow(int width, int height, const char *title) {
-    GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        return nullptr;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);
 
-    return window;
-}
 
 bool initGLEW() {
     glewExperimental = GL_TRUE;
@@ -45,7 +39,7 @@ bool initGLEW() {
     return true;
 }
 
-void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
     if (width == lastWidth && height == lastHeight) {
         return;
     }
@@ -57,15 +51,33 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     }
 }
 
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+bool showSettingsWindow = false;
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         if (getProjectMHandle() != nullptr) {
             projectm_playlist_play_next(getPlaylistHandle(), true);
         }
     }
+    if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
+        showSettingsWindow = !showSettingsWindow;
+    }
 }
 
-void showFPS(GLFWwindow *window) {
+GLFWwindow* createWindow(int width, int height, const char* title) {
+    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        return nullptr;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(window, key_callback);
+
+    return window;
+}
+
+void showFPS(GLFWwindow* window) {
     static int frameCount = 0;
     static double previousTime = glfwGetTime();
 
@@ -95,7 +107,7 @@ void clearScreen() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void handleFirstRender(GLFWwindow* window, bool &isFirstRender) {
+void handleFirstRender(GLFWwindow* window, bool& isFirstRender) {
     if (isFirstRender && getProjectMHandle() != nullptr) {
         int width, height;
         glfwGetFramebufferSize(window, &width, &height);
@@ -111,7 +123,7 @@ void renderFrame() {
     }
 }
 
-void swapBuffersAndPollEvents(GLFWwindow *window) {
+void swapBuffersAndPollEvents(GLFWwindow* window) {
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
@@ -146,14 +158,14 @@ bool isScreenAllBlack(int width, int height) {
         threads.emplace_back(checkBlock, start, end);
     }
 
-    for (auto &thread : threads) {
+    for (auto& thread : threads) {
         thread.join();
     }
 
     return allBlack.load();
 }
 
-void playNextPresetIfItsAllBlack(int frameCounter ) {
+void playNextPresetIfItsAllBlack(int frameCounter) {
     if (frameCounter % 30 == 0) {
         if (isScreenAllBlack(lastWidth, lastHeight)) {
             std::cout << "Screen is all black, switching to next preset." << std::endl;
@@ -164,12 +176,17 @@ void playNextPresetIfItsAllBlack(int frameCounter ) {
     }
 }
 
-void runVisualizer(GLFWwindow *window) {
+void runVisualizer(GLFWwindow* window) {
     try {
         int frameCounter = 0;
-
         bool isFirstRender = true;
+
         while (!glfwWindowShouldClose(window)) {
+            // Start the ImGui frame
+            ImGui_ImplOpenGL3_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+
             clearScreen();
             showFPS(window);
             handleFirstRender(window, isFirstRender);
@@ -177,10 +194,17 @@ void runVisualizer(GLFWwindow *window) {
             playNextPresetIfItsAllBlack(frameCounter);
             frameCounter++;
 
+            // Render the settings window if needed
+            RenderSettingsWindow(showSettingsWindow);
+
+            // Render ImGui
+            ImGui::Render();
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
             swapBuffersAndPollEvents(window);
         }
-    } catch (const std::exception &e) {
+    }
+    catch (const std::exception& e) {
         std::cerr << "Error during rendering: " << e.what() << std::endl;
     }
 }
-

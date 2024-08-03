@@ -1,54 +1,75 @@
 #include "settings_window.h"
+#include "projectm_manager.h"
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_opengl3.h>
+#include <algorithm>
 #include <vector>
 #include <string>
 
-// Globals
-std::vector<std::string> presets;
-std::vector<std::string> audioInputs;
-std::string selectedPreset;
-std::string selectedAudioInput = "Input 1";
+static std::vector<std::string> audioInputs;
+static std::vector<std::string> filteredPresets;
+static char searchBuffer[128] = "";
 
-void InitializeSettings(std::vector<std::string>& presetList, std::vector<std::string>& audioInputList) {
-    presets = presetList;
+void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList) {
     audioInputs = audioInputList;
+    filteredPresets = presetList;  // Initially, no filter applied
 }
 
-void ShowSettingsWindow() {
-    static char searchBuffer[128] = "";
-    ImGui::Begin("Settings");
+std::string truncatePath(const std::string& path) {
+    std::size_t pos = path.find("/presets-cream-of-the-crop/");
+    if (pos != std::string::npos) {
+        return path.substr(pos + 27);  // +9 to skip "/display/"
+    }
+    return path;
+}
 
-    // Search bar
-    ImGui::InputText("Search", searchBuffer, IM_ARRAYSIZE(searchBuffer));
 
-    // List and select presets
-    ImGui::Text("Presets");
-    for (const auto& preset : presets) {
-        if (strstr(preset.c_str(), searchBuffer)) {
-            if (ImGui::Selectable(preset.c_str(), preset == selectedPreset)) {
-                selectedPreset = preset;
-                // Call function to load selected preset
+void RenderSettingsWindow(bool& showSettingsWindow) {
+    if (showSettingsWindow) {
+        ImGui::Begin("Settings", &showSettingsWindow, ImGuiWindowFlags_NoCollapse);  // NoCollapse to prevent collapsing, but allow resizing and moving
+        ImGui::SetWindowPos(ImVec2(100, 100), ImGuiCond_Once); // Position the window at (100, 100)
+
+        // Search input for presets
+        ImGui::Text("Search Presets");
+        ImGui::SameLine();
+        ImGui::InputText("##SearchPresets", searchBuffer, sizeof(searchBuffer));
+        std::string searchString(searchBuffer);
+
+        // Get the list of presets from projectm_manager
+        const auto& presets = getPresetList();
+
+        // Filter presets based on search input
+        filteredPresets.clear();
+        for (const auto& preset : presets) {
+            if (preset.find(searchString) != std::string::npos) {
+                filteredPresets.push_back(preset);
             }
         }
-    }
 
-    // Dropdown for audio input
-    ImGui::Text("Audio input");
-    if (ImGui::BeginCombo("##combo", selectedAudioInput.c_str())) {
-        for (const auto& input : audioInputs) {
-            bool isSelected = (input == selectedAudioInput);
-            if (ImGui::Selectable(input.c_str(), isSelected)) {
-                selectedAudioInput = input;
-                // Call function to switch audio input
+        // Display filtered presets in a selectable list
+        ImGui::Text("Presets:");
+        if (ImGui::BeginListBox("##preset_list")) {
+            for (size_t i = 0; i < filteredPresets.size(); ++i) {
+                const bool isSelected = false;
+                std::string truncatedPreset = truncatePath(filteredPresets[i]);
+                if (ImGui::Selectable(truncatedPreset.c_str(), isSelected)) {
+                    // Handle selection (if needed)
+                }
             }
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
+            ImGui::EndListBox();
         }
-        ImGui::EndCombo();
-    }
 
-    ImGui::End();
+        // Display audio inputs in a selectable list
+        ImGui::Text("Audio Inputs:");
+        if (ImGui::BeginListBox("##audio_input_list")) {
+            for (size_t i = 0; i < audioInputs.size(); ++i) {
+                const bool isSelected = false;
+                if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
+                    // Handle selection (if needed)
+                }
+            }
+            ImGui::EndListBox();
+        }
+
+        ImGui::End();
+    }
 }

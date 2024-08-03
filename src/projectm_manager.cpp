@@ -1,11 +1,24 @@
 #include "projectm_manager.h"
 #include "utils.h"
 #include <iostream>
+#include <filesystem>
 
 #define PRESETS_PATH "/Users/estoussel/dev/depreVisuales/presets"
 
 static projectm_handle projectMHandle = nullptr;
 static projectm_playlist_handle playlistHandle = nullptr;
+static std::vector<std::string> presetList;
+
+namespace fs = std::__fs::filesystem;  // Ensure correct namespace for filesystem
+
+void scanPresets(const std::string& directory, std::vector<std::string>& presets) {
+    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".milk") {
+            presets.push_back(entry.path().string());
+        }
+    }
+    std::sort(presets.begin(), presets.end());
+}
 
 bool initProjectM(int width, int height) {
     projectMHandle = projectm_create();
@@ -15,7 +28,6 @@ bool initProjectM(int width, int height) {
     }
 
     projectm_set_window_size(projectMHandle, width, height);
-
     checkGLError("after initializing projectM");
 
     playlistHandle = projectm_playlist_create(projectMHandle);
@@ -32,7 +44,10 @@ bool initProjectM(int width, int height) {
     }
     std::cout << "Added " << added << " presets to the playlist" << std::endl;
 
-    // TODO enable or disable this
+    // Scan the presets for the settings window
+    scanPresets(PRESETS_PATH, presetList);
+
+    // Enable or disable shuffle
     projectm_playlist_set_shuffle(playlistHandle, true);
     projectm_playlist_play_next(playlistHandle, true);
 
@@ -51,4 +66,8 @@ projectm_handle getProjectMHandle() {
 
 projectm_playlist_handle getPlaylistHandle() {
     return playlistHandle;
+}
+
+const std::vector<std::string>& getPresetList() {
+    return presetList;
 }

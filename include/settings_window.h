@@ -3,8 +3,10 @@
 
 #include <vector>
 #include <string>
+#include <imgui.h>
 
-void ShowSettingsWindow();
-void InitializeSettings(std::vector<std::string>& presets, std::vector<std::string>& audioInputs);
+void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList);
+void RenderSettingsWindow(bool& showSettingsWindow);
+void ScanPresets(const std::string& directory, std::vector<std::string>& presets);
 
 #endif // SETTINGS_WINDOW_H
