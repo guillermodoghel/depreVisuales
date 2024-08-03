@@ -33,7 +33,7 @@ std::string truncatePath(const std::string& path) {
 
 void RenderSettingsWindow(bool& showSettingsWindow) {
     if (showSettingsWindow) {
-        ImGui::Begin("Settings", &showSettingsWindow, ImGuiWindowFlags_NoCollapse);
+        ImGui::Begin("Depre settings", &showSettingsWindow, ImGuiWindowFlags_NoCollapse);
         ImGui::SetWindowPos(ImVec2(100, 100), ImGuiCond_Once);
 
         currentPreset = getCurrentPreset();
