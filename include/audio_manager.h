@@ -5,8 +5,7 @@
 #include <string>
 
 bool initPortAudio(int deviceIndex);
+void listAudioInputDevices(std::vector<std::string>& audioInputList, std::vector<int>& deviceIndices);
 void cleanUpPortAudio();
-bool setAudioInputDevice(int deviceIndex);
-void listAudioInputDevices(std::vector<std::string>& audioInputList, std::vector<int>& audioDeviceIndices);
 
 #endif // AUDIO_MANAGER_H

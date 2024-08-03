@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "settings_window.h"
 #include <iostream>
+
+// Include ImGui backend headers
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
@@ -37,14 +39,16 @@ int main() {
         return 1;
     }
 
-    // Initialize PortAudio with the first device
-    if (!initPortAudio(audioDeviceIndices[0])) {
+    // Select the first audio device by default
+    int selectedDeviceIndex = audioDeviceIndices.empty() ? -1 : audioDeviceIndices[0];
+    if (!initPortAudio(selectedDeviceIndex)) {
         return 1;
     }
 
     // Initialize settings window data
     std::vector<std::string> presetList = getPresetList();
-    InitializeSettings(presetList, audioInputList, audioDeviceIndices);
+    bool shuffleState = false;  // Shuffle is disabled by default
+    InitializeSettings(presetList, audioInputList, audioDeviceIndices, shuffleState);
 
     // Setup ImGui context
     IMGUI_CHECKVERSION();

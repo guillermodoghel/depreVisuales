@@ -1,26 +1,24 @@
 #include "settings_window.h"
 #include "projectm_manager.h"
-#include "audio_manager.h"
 #include <imgui.h>
 #include <algorithm>
 #include <vector>
 #include <string>
 
 std::string currentPreset;  // Define the currentPreset variable
-std::string currentAudioSource;  // Define the currentAudioSource variable
 static std::vector<std::string> audioInputs;
-static std::vector<int> audioDeviceIndices;  // Store the corresponding device indices
+static std::vector<int> deviceIndices;
 static std::vector<std::string> filteredPresets;
 static char searchBuffer[128] = "";
+static bool shuffleEnabled = false;  // Shuffle state
+static std::string currentAudioInput;  // Variable to store the current audio input name
 
-void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList, const std::vector<int>& deviceIndices) {
+void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList, const std::vector<int>& deviceIndices, bool shuffleState) {
     audioInputs = audioInputList;
-    audioDeviceIndices = deviceIndices;
     filteredPresets = presetList;  // Initially, no filter applied
     currentPreset = getCurrentPreset();  // Initialize the currentPreset
-    if (!audioInputs.empty()) {
-        currentAudioSource = audioInputs[0];  // Initialize the currentAudioSource with the first audio input
-    }
+    shuffleEnabled = shuffleState;
+    currentAudioInput = audioInputList.empty() ? "No audio input available" : audioInputList[0];  // Initialize the current audio input
 }
 
 std::string truncatePath(const std::string& path) {
@@ -41,19 +39,9 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         std::string truncatedPreset = truncatePath(currentPreset);
         ImGui::Text("Current Preset: %s", truncatedPreset.c_str());
 
-        // Add a separator line
-        ImGui::Separator();
-
-        // Display current audio source
-        ImGui::Text("Current Audio Source: %s", currentAudioSource.c_str());
-
-        // Add another separator line
-        ImGui::Separator();
-
         // Search input for presets
         ImGui::Text("Search Presets");
         ImGui::SameLine();
-        ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the input box to the full width of the window
         ImGui::InputText("##SearchPresets", searchBuffer, sizeof(searchBuffer));
         std::string searchString(searchBuffer);
 
@@ -70,8 +58,7 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
 
         // Display filtered presets in a selectable list
         ImGui::Text("Presets:");
-        ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the list box to the full width of the window
-        if (ImGui::BeginListBox("##preset_list")) {
+        if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
             for (size_t i = 0; i < filteredPresets.size(); ++i) {
                 const bool isSelected = (filteredPresets[i] == currentPreset);
                 std::string truncatedPreset = truncatePath(filteredPresets[i]);
@@ -83,19 +70,46 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
             ImGui::EndListBox();
         }
 
+        // Add space between presets list and audio inputs list
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        // Display the current audio input
+        ImGui::Text("Current Audio Input: %s", currentAudioInput.c_str());
+
         // Display audio inputs in a selectable list
         ImGui::Text("Audio Inputs:");
-        ImGui::SetNextItemWidth(-FLT_MIN);  // Set the width of the list box to the full width of the window
-        if (ImGui::BeginListBox("##audio_input_list")) {
+        if (ImGui::BeginListBox("##audio_input_list", ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
             for (size_t i = 0; i < audioInputs.size(); ++i) {
-                const bool isSelected = (audioInputs[i] == currentAudioSource);
+                const bool isSelected = (audioInputs[i] == currentAudioInput);
                 if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
-                    currentAudioSource = audioInputs[i];  // Update the currentAudioSource when selected
-                    setAudioInputDevice(audioDeviceIndices[i]);  // Set the selected audio input device
+                    currentAudioInput = audioInputs[i];  // Update the current audio input
+                    // Handle audio input selection (if needed)
                 }
             }
             ImGui::EndListBox();
         }
+
+        // Add space between audio inputs list and shuffle checkbox
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        // Display shuffle checkbox
+        if (ImGui::Checkbox("Shuffle Enabled", &shuffleEnabled)) {
+            setShuffleState(shuffleEnabled);
+        }
+
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Spacing();
 
         ImGui::End();
     }

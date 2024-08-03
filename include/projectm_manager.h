@@ -13,6 +13,8 @@ projectm_playlist_handle getPlaylistHandle();
 const std::vector<std::string>& getPresetList();
 std::string getCurrentPreset();
 void playNextPreset();
-void setCurrentPreset(const std::string& preset);  // Function to set the current preset
+void setCurrentPreset(const std::string& preset);
+void setShuffleState(bool enabled);
+bool getShuffleState();
 
 #endif // PROJECTM_MANAGER_H

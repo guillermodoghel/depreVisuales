@@ -10,6 +10,7 @@ static projectm_handle projectMHandle = nullptr;
 static projectm_playlist_handle playlistHandle = nullptr;
 static std::vector<std::string> presetList;
 static std::string currentPreset;  // Variable to store the current preset name
+static bool shuffleEnabled = false; // Initialize shuffle state to false
 
 namespace fs = std::__fs::filesystem;  // Ensure correct namespace for filesystem
 
@@ -59,8 +60,6 @@ bool initProjectM(int width, int height) {
         return false;
     }
 
-    // Enable or disable shuffle
-    // projectm_playlist_set_shuffle(playlistHandle, true);
     projectm_playlist_play_next(playlistHandle, false);
     currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
 
@@ -110,5 +109,12 @@ void setCurrentPreset(const std::string& preset) {
             projectm_playlist_set_position(playlistHandle, index, true);
             currentPreset = preset;
         }
+    }
+}
+
+void setShuffleState(bool enabled) {
+    if (playlistHandle != nullptr) {
+        projectm_playlist_set_shuffle(playlistHandle, enabled);
+        shuffleEnabled = enabled;
     }
 }
