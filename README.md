@@ -9,13 +9,25 @@ library.
 
 
 ### Instructions
+Get all dependencies (projectM, imgui, and presets)
+```
+git submodule update --init --recursive
+```
 
-build and install `dependencies/libprojectM-4.1.1`
+build and install `dependencies/projectm` following the instructions in the repo. you may have to install other dependencies, like `libglew-dev` and `libglfw3-dev`.
+More instructions here https://github.com/projectM-visualizer/projectm/wiki/Building-libprojectM
 
-Instructions here https://github.com/projectM-visualizer/projectm/wiki/Building-libprojectM
+```
+cd dependencies/projectm
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=../install
+make
+make install
+```
 
 
-Solve dependencies, use chatgpt for help
+
 
 This repo included 9000+ presets. Build, run and enjoy.
 

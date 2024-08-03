@@ -8,8 +8,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 find_package(PkgConfig REQUIRED)
 
-set(PROJECTM_INCLUDE_DIR "/usr/local/include")
-set(PROJECTM_LIBRARY_DIR "/usr/local/lib")
+set(PROJECTM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/install/include)
+set(PROJECTM_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/install/lib)
 
 # Find the projectM library
 find_library(PROJECTM_LIBRARY NAMES projectM-4 PATHS ${PROJECTM_LIBRARY_DIR})
@@ -44,6 +44,13 @@ include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
 link_directories(${PROJECTM_LIBRARY_DIR})
 link_directories(${PORTAUDIO_LIBRARY_DIRS})
 
+# Set the RPATH to include the necessary directories
+set(CMAKE_BUILD_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib")
+set(CMAKE_INSTALL_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib")
+
+# Ensure RPATH is used when installing
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # Add source files
 set(SOURCES
         src/main.cpp
@@ -57,6 +64,7 @@ set(SOURCES
         ${IMGUI_DIR}/imgui_draw.cpp
         ${IMGUI_DIR}/imgui_widgets.cpp
         ${IMGUI_DIR}/imgui_tables.cpp
+        ${IMGUI_DIR}/imgui_demo.cpp
         ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
         ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
 )
