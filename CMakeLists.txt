@@ -8,8 +8,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 find_package(PkgConfig REQUIRED)
 
-set(PROJECTM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/install/include)
-set(PROJECTM_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/install/lib)
+set(PROJECTM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/include)
+set(PROJECTM_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/lib)
 
 # Find the projectM library
 find_library(PROJECTM_LIBRARY NAMES projectM-4 PATHS ${PROJECTM_LIBRARY_DIR})

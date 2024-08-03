@@ -21,7 +21,7 @@ More instructions here https://github.com/projectM-visualizer/projectm/wiki/Buil
 cd dependencies/projectm
 mkdir build
 cd build
-cmake .. -DCMAKE_INSTALL_PREFIX=../install
+cmake .. -DCMAKE_INSTALL_PREFIX=../bin
 make
 make install
 ```
