@@ -2,7 +2,6 @@
 #include "utils.h"
 #include <iostream>
 #include <filesystem>
-#include <stdexcept>  // Include to handle std::bad_alloc
 
 #define PRESETS_PATH "/Users/estoussel/dev/depreVisuales/presets"
 

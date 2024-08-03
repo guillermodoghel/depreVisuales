@@ -2,7 +2,6 @@
 #include "projectm_manager.h"
 #include "audio_manager.h"
 #include <imgui.h>
-#include <algorithm>
 #include <vector>
 #include <string>
 
