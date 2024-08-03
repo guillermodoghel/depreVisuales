@@ -4,3 +4,6 @@
 [submodule "dependencies/imgui"]
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "presets/presets-cream-of-the-crop"]
+	path = presets/presets-cream-of-the-crop
+	url = git@github.com:projectM-visualizer/presets-cream-of-the-crop.git
