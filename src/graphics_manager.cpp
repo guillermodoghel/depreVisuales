@@ -1,4 +1,4 @@
-#include <GL/glew.h>  // Ensure GLEW is included before any OpenGL headers
+#include <GL/glew.h>
 #include "graphics_manager.h"
 #include "projectm_manager.h"
 #include "utils.h"
@@ -130,17 +130,14 @@ void swapBuffersAndPollEvents(GLFWwindow* window) {
 }
 
 bool isFrameBlack(int width, int height, int sampleRate = 1) {
-    // Calculate sample points (higher resolution by reducing the divisor)
     int checkWidth = width / sampleRate;
     int checkHeight = height / sampleRate;
-    std::vector<GLubyte> pixels(checkWidth * checkHeight * 3); // 3 bytes per pixel (RGB)
+    std::vector<GLubyte> pixels(checkWidth * checkHeight * 3);
 
-    glFinish(); // Ensure all previous OpenGL commands are done
+    glFinish();
 
-    // Bind the default framebuffer (0)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // Read pixels from the framebuffer at a higher resolution
     glReadPixels(0, 0, checkWidth, checkHeight, GL_RGB, GL_UNSIGNED_BYTE, &pixels[0]);
 
     for (int i = 0; i < checkWidth * checkHeight; ++i) {
@@ -157,8 +154,8 @@ void playNextPresetIfItsAllBlack(int frameCounter, int width, int height) {
     static std::vector<bool> blackFrameBuffer(20, false);
     static int currentIndex = 0;
 
-    if (frameCounter % 30 == 0) { // Check every 10 frames
-        bool isBlack = isFrameBlack(width, height, 1); // Higher resolution by setting sampleRate to 1
+    if (frameCounter % 30 == 0) {
+        bool isBlack = isFrameBlack(width, height, 1);
         blackFrameBuffer[currentIndex] = isBlack;
 
         currentIndex = (currentIndex + 1) % blackFrameBuffer.size();
@@ -169,7 +166,6 @@ void playNextPresetIfItsAllBlack(int frameCounter, int width, int height) {
                 playNextPreset();
             }
 
-            // Reset the buffer
             std::fill(blackFrameBuffer.begin(), blackFrameBuffer.end(), false);
             currentIndex = 0;
         }
@@ -177,12 +173,12 @@ void playNextPresetIfItsAllBlack(int frameCounter, int width, int height) {
 }
 
 void runVisualizer(GLFWwindow* window) {
-    try {
-        int frameCounter = 0;
-        bool isFirstRender = true;
+    int frameCounter = 0;
+    bool isFirstRender = true;
+    GLFWmonitor* lastMonitor = glfwGetWindowMonitor(window);
 
+    try {
         while (!glfwWindowShouldClose(window)) {
-            // Start the ImGui frame
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
@@ -191,20 +187,35 @@ void runVisualizer(GLFWwindow* window) {
             showFPS(window);
             handleFirstRender(window, isFirstRender);
             renderFrame();
-            // playNextPresetIfItsAllBlack(frameCounter, lastWidth, lastHeight);
             frameCounter++;
 
-            // Render the settings window if needed
             RenderSettingsWindow(showSettingsWindow);
 
-            // Render ImGui
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+            // Detect monitor changes
+            GLFWmonitor* currentMonitor = glfwGetWindowMonitor(window);
+            if (currentMonitor != lastMonitor) {
+                std::cout << "Monitor changed. Reinitializing context." << std::endl;
+                // Reinitialize context or take appropriate action
+                glfwMakeContextCurrent(window);
+                lastMonitor = currentMonitor;
+            }
+
+            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+                ImGui::UpdatePlatformWindows();
+                ImGui::RenderPlatformWindowsDefault();
+                glfwMakeContextCurrent(window);
+            }
+
             swapBuffersAndPollEvents(window);
         }
-    }
-    catch (const std::exception& e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error during rendering: " << e.what() << std::endl;
     }
+
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }

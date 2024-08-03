@@ -4,13 +4,10 @@
 #include "utils.h"
 #include "settings_window.h"
 #include <iostream>
-
-// Include ImGui backend headers
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
 int main() {
-    // List audio input devices
     std::vector<std::string> audioInputList;
     std::vector<int> audioDeviceIndices;
     listAudioInputDevices(audioInputList, audioDeviceIndices);
@@ -39,34 +36,34 @@ int main() {
         return 1;
     }
 
-    // Select the first audio device by default
     int selectedDeviceIndex = audioDeviceIndices.empty() ? -1 : audioDeviceIndices[0];
     if (!initPortAudio(selectedDeviceIndex)) {
         return 1;
     }
 
-    // Initialize settings window data
     std::vector<std::string> presetList = getPresetList();
-    bool shuffleState = false;  // Shuffle is disabled by default
+    bool shuffleState = false;
     InitializeSettings(presetList, audioInputList, audioDeviceIndices, shuffleState);
 
     // Setup ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGui::StyleColorsDark();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 
-    // Setup Platform/Renderer bindings
+    // Initialize ImGui backend bindings
+    std::cout << "Initializing ImGui for GLFW and OpenGL..." << std::endl;
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
     runVisualizer(window);
 
-    // Cleanup
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    // Clean up resources
     cleanUpPortAudio();
     cleanUpProjectM();
 
