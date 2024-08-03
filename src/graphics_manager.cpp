@@ -16,6 +16,9 @@
 int lastWidth = 800;
 int lastHeight = 600;
 
+GLuint framebuffer = 0;
+GLuint textureColorbuffer = 0;
+
 bool initGLFW() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -67,7 +70,7 @@ bool showSettingsWindow = false;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         if (getProjectMHandle() != nullptr) {
-            playNextPreset();
+            projectm_playlist_play_next(getPlaylistHandle(), false);
         }
     }
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
@@ -92,8 +95,7 @@ void showFPS(GLFWwindow* window) {
         // Check if FPS is below 30 and switch preset if it is
         if (fps < 30.0) {
             if (getProjectMHandle() != nullptr) {
-                playNextPreset();
-
+                projectm_playlist_play_next(getPlaylistHandle(), true);
             }
         }
 
@@ -127,50 +129,49 @@ void swapBuffersAndPollEvents(GLFWwindow* window) {
     glfwPollEvents();
 }
 
-bool isScreenAllBlack(int width, int height) {
-    // Allocate memory to read pixels at a lower resolution
-    int checkWidth = width / 10;
-    int checkHeight = height / 10;
-    std::vector<GLubyte> pixels(checkWidth * checkHeight); // 1 byte per pixel (using GL_RED)
+bool isFrameBlack(int width, int height, int sampleRate = 1) {
+    // Calculate sample points (higher resolution by reducing the divisor)
+    int checkWidth = width / sampleRate;
+    int checkHeight = height / sampleRate;
+    std::vector<GLubyte> pixels(checkWidth * checkHeight * 3); // 3 bytes per pixel (RGB)
 
-    // Read pixels from the framebuffer at a lower resolution
-    glReadPixels(0, 0, checkWidth, checkHeight, GL_RED, GL_UNSIGNED_BYTE, &pixels[0]);
+    glFinish(); // Ensure all previous OpenGL commands are done
 
-    // Check if all pixels are black using multiple threads
-    std::atomic<bool> allBlack(true);
-    int numThreads = std::thread::hardware_concurrency();
-    int blockSize = pixels.size() / numThreads;
+    // Bind the default framebuffer (0)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    auto checkBlock = [&](int start, int end) {
-        for (int i = start; i < end; ++i) {
-            if (pixels[i] != 0) {
-                allBlack.store(false);
-                return;
-            }
+    // Read pixels from the framebuffer at a higher resolution
+    glReadPixels(0, 0, checkWidth, checkHeight, GL_RGB, GL_UNSIGNED_BYTE, &pixels[0]);
+
+    for (int i = 0; i < checkWidth * checkHeight; ++i) {
+        int pixelIndex = i * 3;
+        if (pixels[pixelIndex] != 0 || pixels[pixelIndex + 1] != 0 || pixels[pixelIndex + 2] != 0) {
+            return false;
         }
-    };
-
-    std::vector<std::thread> threads;
-    for (int i = 0; i < numThreads; ++i) {
-        int start = i * blockSize;
-        int end = (i == numThreads - 1) ? pixels.size() : (i + 1) * blockSize;
-        threads.emplace_back(checkBlock, start, end);
     }
 
-    for (auto& thread : threads) {
-        thread.join();
-    }
-
-    return allBlack.load();
+    return true;
 }
 
-void playNextPresetIfItsAllBlack(int frameCounter) {
-    if (frameCounter % 30 == 0) {
-        if (isScreenAllBlack(lastWidth, lastHeight)) {
-            std::cout << "Screen is all black, switching to next preset." << std::endl;
+void playNextPresetIfItsAllBlack(int frameCounter, int width, int height) {
+    static std::vector<bool> blackFrameBuffer(20, false);
+    static int currentIndex = 0;
+
+    if (frameCounter % 30 == 0) { // Check every 10 frames
+        bool isBlack = isFrameBlack(width, height, 1); // Higher resolution by setting sampleRate to 1
+        blackFrameBuffer[currentIndex] = isBlack;
+
+        currentIndex = (currentIndex + 1) % blackFrameBuffer.size();
+
+        if (std::all_of(blackFrameBuffer.begin(), blackFrameBuffer.end(), [](bool v) { return v; })) {
+            std::cout << "Screen is all black for the last 10 checks, switching to next preset." << std::endl;
             if (getProjectMHandle() != nullptr) {
                 playNextPreset();
             }
+
+            // Reset the buffer
+            std::fill(blackFrameBuffer.begin(), blackFrameBuffer.end(), false);
+            currentIndex = 0;
         }
     }
 }
@@ -190,7 +191,7 @@ void runVisualizer(GLFWwindow* window) {
             showFPS(window);
             handleFirstRender(window, isFirstRender);
             renderFrame();
-            playNextPresetIfItsAllBlack(frameCounter);
+            // playNextPresetIfItsAllBlack(frameCounter, lastWidth, lastHeight);
             frameCounter++;
 
             // Render the settings window if needed

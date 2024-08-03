@@ -1,5 +1,6 @@
 #include "settings_window.h"
 #include "projectm_manager.h"
+#include "audio_manager.h"
 #include <imgui.h>
 #include <algorithm>
 #include <vector>
@@ -12,9 +13,11 @@ static std::vector<std::string> filteredPresets;
 static char searchBuffer[128] = "";
 static bool shuffleEnabled = false;  // Shuffle state
 static std::string currentAudioInput;  // Variable to store the current audio input name
+static float gainValue = 1.0f;  // Variable to store the gain value
 
-void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList, const std::vector<int>& deviceIndices, bool shuffleState) {
+void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList, const std::vector<int>& indices, bool shuffleState) {
     audioInputs = audioInputList;
+    deviceIndices = indices;
     filteredPresets = presetList;  // Initially, no filter applied
     currentPreset = getCurrentPreset();  // Initialize the currentPreset
     shuffleEnabled = shuffleState;
@@ -87,7 +90,7 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
                 const bool isSelected = (audioInputs[i] == currentAudioInput);
                 if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
                     currentAudioInput = audioInputs[i];  // Update the current audio input
-                    // Handle audio input selection (if needed)
+                    setAudioInputDevice(deviceIndices[i]);  // Set the selected audio input device
                 }
             }
             ImGui::EndListBox();
@@ -103,6 +106,19 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         // Display shuffle checkbox
         if (ImGui::Checkbox("Shuffle Enabled", &shuffleEnabled)) {
             setShuffleState(shuffleEnabled);
+        }
+
+        // Add space between shuffle checkbox and gain slider
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+        ImGui::Spacing();
+
+        // Display gain slider
+        ImGui::Text("Gain:");
+        if (ImGui::SliderFloat("##Gain", &gainValue, 0.0f, 1.0f)) {
+            setGain(gainValue);
         }
 
         ImGui::Spacing();

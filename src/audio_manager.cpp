@@ -4,9 +4,10 @@
 #include <portaudio.h>
 
 #define FRAMES_PER_BUFFER 256
-#define GAIN 10.0
 
 #define SAMPLE_RATE 44100
+
+float gain = 1.0;  // Initialize the gain variable
 
 static PaStream *stream = nullptr;
 static int sampleRate = SAMPLE_RATE;  // Initialize sample rate with a default value
@@ -20,7 +21,7 @@ static int paCallback(const void *inputBuffer, void *outputBuffer,
     if (inputBuffer != nullptr && getProjectMHandle() != nullptr) {
         float pcmData[framesPerBuffer * 2];
         for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-            float amplifiedSample = in[i] * GAIN;
+            float amplifiedSample = in[i] * gain;
             if (amplifiedSample > 1.0f) amplifiedSample = 1.0f;
             if (amplifiedSample < -1.0f) amplifiedSample = -1.0f;
             pcmData[2 * i] = amplifiedSample;
@@ -95,7 +96,7 @@ bool setAudioInputDevice(int deviceIndex) {
     return initPortAudio(deviceIndex);
 }
 
-void listAudioInputDevices(std::vector<std::string>& audioInputList, std::vector<int>& audioDeviceIndices) {
+void listAudioInputDevices(std::vector<std::string>& audioInputList, std::vector<int>& deviceIndices) {
     PaError err = Pa_Initialize();
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
@@ -116,7 +117,7 @@ void listAudioInputDevices(std::vector<std::string>& audioInputList, std::vector
             hostApiInfo = Pa_GetHostApiInfo(deviceInfo->hostApi);
             std::string deviceName = std::string(deviceInfo->name) + " (" + hostApiInfo->name + ")";
             audioInputList.push_back(deviceName);
-            audioDeviceIndices.push_back(i);  // Store the device index
+            deviceIndices.push_back(i);
         }
     }
 
@@ -130,4 +131,8 @@ void cleanUpPortAudio() {
         stream = nullptr;
     }
     Pa_Terminate();
+}
+
+void setGain(float newGain) {
+    gain = newGain;
 }
