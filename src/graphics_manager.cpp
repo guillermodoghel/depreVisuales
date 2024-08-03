@@ -27,7 +27,18 @@ bool initGLFW() {
     return true;
 }
 
+GLFWwindow* createWindow(int width, int height, const char* title) {
+    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        return nullptr;
+    }
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(window, key_callback);
 
+    return window;
+}
 
 bool initGLEW() {
     glewExperimental = GL_TRUE;
@@ -56,25 +67,12 @@ bool showSettingsWindow = false;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         if (getProjectMHandle() != nullptr) {
-            projectm_playlist_play_next(getPlaylistHandle(), true);
+            playNextPreset();
         }
     }
     if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
         showSettingsWindow = !showSettingsWindow;
     }
-}
-
-GLFWwindow* createWindow(int width, int height, const char* title) {
-    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
-    if (!window) {
-        std::cerr << "Failed to create GLFW window" << std::endl;
-        return nullptr;
-    }
-    glfwMakeContextCurrent(window);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);
-
-    return window;
 }
 
 void showFPS(GLFWwindow* window) {
@@ -94,7 +92,8 @@ void showFPS(GLFWwindow* window) {
         // Check if FPS is below 30 and switch preset if it is
         if (fps < 30.0) {
             if (getProjectMHandle() != nullptr) {
-                projectm_playlist_play_next(getPlaylistHandle(), true);
+                playNextPreset();
+
             }
         }
 
@@ -170,7 +169,7 @@ void playNextPresetIfItsAllBlack(int frameCounter) {
         if (isScreenAllBlack(lastWidth, lastHeight)) {
             std::cout << "Screen is all black, switching to next preset." << std::endl;
             if (getProjectMHandle() != nullptr) {
-                projectm_playlist_play_next(getPlaylistHandle(), true);
+                playNextPreset();
             }
         }
     }

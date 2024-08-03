@@ -1,6 +1,7 @@
 #include "audio_manager.h"
 #include "projectm_manager.h"
 #include <iostream>
+#include <portaudio.h>
 
 #define SAMPLE_RATE 48000
 #define FRAMES_PER_BUFFER 256
@@ -51,7 +52,7 @@ bool initPortAudio() {
     return true;
 }
 
-void listAudioInputDevices() {
+void listAudioInputDevices(std::vector<std::string>& audioInputList) {
     PaError err = Pa_Initialize();
     if (err != paNoError) {
         std::cerr << "PortAudio error: " << Pa_GetErrorText(err) << std::endl;
@@ -70,9 +71,8 @@ void listAudioInputDevices() {
         deviceInfo = Pa_GetDeviceInfo(i);
         if (deviceInfo->maxInputChannels > 0) {
             hostApiInfo = Pa_GetHostApiInfo(deviceInfo->hostApi);
-            std::cout << "Device " << i << ": " << deviceInfo->name << " (" << hostApiInfo->name << ")" << std::endl;
-            std::cout << "    Max input channels: " << deviceInfo->maxInputChannels << std::endl;
-            std::cout << "    Default sample rate: " << deviceInfo->defaultSampleRate << std::endl;
+            std::string deviceName = std::string(deviceInfo->name) + " (" + hostApiInfo->name + ")";
+            audioInputList.push_back(deviceName);
         }
     }
 

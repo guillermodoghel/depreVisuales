@@ -4,18 +4,16 @@
 #include "utils.h"
 #include "settings_window.h"
 #include <iostream>
-#include <imgui.h>
+#include <vector>
+
+// Include ImGui backend headers
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
-extern int lastWidth;
-extern int lastHeight;
-
-void runVisualizer(GLFWwindow* window);
-
 int main() {
-    // List audio input devices
-    listAudioInputDevices();
+    // List audio input devices and store them in a vector
+    std::vector<std::string> audioInputList;
+    listAudioInputDevices(audioInputList);
 
     if (!initGLFW()) {
         return 1;
@@ -46,8 +44,8 @@ int main() {
     }
 
     // Initialize settings window data
-    std::vector<std::string> audioInputList = {"Input 1", "Input 2", "Input 3"};
-    InitializeSettings(getPresetList(), audioInputList);
+    std::vector<std::string> presetList = getPresetList();
+    InitializeSettings(presetList, audioInputList);
 
     // Setup ImGui context
     IMGUI_CHECKVERSION();

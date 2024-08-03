@@ -3,14 +3,16 @@
 
 #include <GLFW/glfw3.h>
 
-// Declare the external variables
 extern int lastWidth;
 extern int lastHeight;
 
-// Function declarations
 bool initGLFW();
 GLFWwindow* createWindow(int width, int height, const char* title);
 bool initGLEW();
 void runVisualizer(GLFWwindow* window);
+
+// Declare the callback functions
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 
 #endif // GRAPHICS_MANAGER_H

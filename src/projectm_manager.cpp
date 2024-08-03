@@ -2,22 +2,29 @@
 #include "utils.h"
 #include <iostream>
 #include <filesystem>
+#include <stdexcept>  // Include to handle std::bad_alloc
 
 #define PRESETS_PATH "/Users/estoussel/dev/depreVisuales/presets"
 
 static projectm_handle projectMHandle = nullptr;
 static projectm_playlist_handle playlistHandle = nullptr;
 static std::vector<std::string> presetList;
+static std::string currentPreset;  // Variable to store the current preset name
 
 namespace fs = std::__fs::filesystem;  // Ensure correct namespace for filesystem
 
 void scanPresets(const std::string& directory, std::vector<std::string>& presets) {
-    for (const auto& entry : fs::recursive_directory_iterator(directory)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".milk") {
-            presets.push_back(entry.path().string());
+    try {
+        for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".milk") {
+                presets.push_back(entry.path().string());
+            }
         }
+        std::sort(presets.begin(), presets.end());
+    } catch (const std::bad_alloc& e) {
+        std::cerr << "Memory allocation error: " << e.what() << std::endl;
+        throw;
     }
-    std::sort(presets.begin(), presets.end());
 }
 
 bool initProjectM(int width, int height) {
@@ -45,11 +52,17 @@ bool initProjectM(int width, int height) {
     std::cout << "Added " << added << " presets to the playlist" << std::endl;
 
     // Scan the presets for the settings window
-    scanPresets(PRESETS_PATH, presetList);
+    try {
+        scanPresets(PRESETS_PATH, presetList);
+    } catch (const std::bad_alloc& e) {
+        std::cerr << "Failed to scan presets: " << e.what() << std::endl;
+        return false;
+    }
 
     // Enable or disable shuffle
     projectm_playlist_set_shuffle(playlistHandle, true);
-    projectm_playlist_play_next(playlistHandle, true);
+    projectm_playlist_play_next(playlistHandle, false);
+    currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
 
     return true;
 }
@@ -70,4 +83,32 @@ projectm_playlist_handle getPlaylistHandle() {
 
 const std::vector<std::string>& getPresetList() {
     return presetList;
+}
+
+std::string getCurrentPreset() {
+    return currentPreset;
+}
+
+void playNextPreset() {
+    if (playlistHandle != nullptr) {
+        projectm_playlist_play_next(playlistHandle, false);
+        // Update the current preset to the next one in the list
+        auto it = std::find(presetList.begin(), presetList.end(), currentPreset);
+        if (it != presetList.end() && ++it != presetList.end()) {
+            currentPreset = *it;
+        } else if (!presetList.empty()) {
+            currentPreset = presetList[0];
+        }
+    }
+}
+
+void setCurrentPreset(const std::string& preset) {
+    if (playlistHandle != nullptr) {
+        auto it = std::find(presetList.begin(), presetList.end(), preset);
+        if (it != presetList.end()) {
+            uint32_t index = std::distance(presetList.begin(), it);
+            projectm_playlist_set_position(playlistHandle, index, true);
+            currentPreset = preset;
+        }
+    }
 }
