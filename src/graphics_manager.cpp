@@ -4,14 +4,17 @@
 #include "utils.h"
 #include "settings_window.h"
 #include <iostream>
-#include <GLFW/glfw3.h>
+#include <vector>
 #include <thread>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <chrono>
+
 
 int lastWidth = 800;
 int lastHeight = 600;
+bool showSettingsWindow = false; // Define the variable
 
 GLuint framebuffer = 0;
 GLuint textureColorbuffer = 0;
@@ -27,8 +30,8 @@ bool initGLFW() {
     return true;
 }
 
-GLFWwindow* createWindow(int width, int height, const char* title) {
-    GLFWwindow* window = glfwCreateWindow(width, height, title, NULL, NULL);
+GLFWwindow *createWindow(int width, int height, const char *title) {
+    GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         return nullptr;
@@ -50,21 +53,45 @@ bool initGLEW() {
     return true;
 }
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+bool initFramebuffer(int width, int height) {
+    glGenFramebuffers(1, &framebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+    // Create a color attachment texture
+    glGenTextures(1, &textureColorbuffer);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Framebuffer is not complete!" << std::endl;
+        return false;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return true;
+}
+
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     if (width == lastWidth && height == lastHeight) {
         return;
     }
     lastWidth = width;
     lastHeight = height;
     glViewport(0, 0, width, height);
+    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glBindTexture(GL_TEXTURE_2D, 0);
     if (getProjectMHandle() != nullptr) {
         projectm_set_window_size(getProjectMHandle(), width, height);
     }
 }
 
-bool showSettingsWindow = false;
-
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         if (getProjectMHandle() != nullptr) {
             playNextPreset();
@@ -75,90 +102,78 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     }
 }
 
-void showFPS(GLFWwindow* window) {
-    static int frameCount = 0;
-    static double previousTime = glfwGetTime();
+bool isFrameAllBlack(int width, int height) {
+    std::vector<GLubyte> pixels(width * height * 3); // Assuming 3 bytes per pixel (RGB)
+    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
 
-    double currentTime = glfwGetTime();
-    double deltaTime = currentTime - previousTime;
-    frameCount++;
-
-    if (deltaTime >= 2.0) {
-        double fps = static_cast<double>(frameCount) / deltaTime;
-
-        std::string title = "DepreVisuales - FPS: " + std::to_string(fps);
-        glfwSetWindowTitle(window, title.c_str());
-
-        // Check if FPS is below 30 and switch preset if it is
-        if (fps < 15.0) {
-            if (getProjectMHandle() != nullptr) {
-                playNextPreset();
-            }
+    for (size_t i = 0; i < pixels.size(); i += 3) {
+        if (pixels[i] != 0 || pixels[i + 1] != 0 || pixels[i + 2] != 0) {
+            return false;
         }
-
-        frameCount = 0;
-        previousTime = currentTime;
     }
+    return true;
 }
+
+
 
 void clearScreen() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void handleFirstRender(GLFWwindow* window, bool& isFirstRender) {
-    if (isFirstRender && getProjectMHandle() != nullptr) {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        projectm_set_window_size(getProjectMHandle(), width, height);
-        isFirstRender = false;
-    }
-}
 
 void renderFrame() {
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
     if (getProjectMHandle() != nullptr) {
         projectm_opengl_render_frame(getProjectMHandle());
         checkGLError("during rendering");
     }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void swapBuffersAndPollEvents(GLFWwindow* window) {
+void swapBuffersAndPollEvents(GLFWwindow *window) {
     glfwSwapBuffers(window);
     glfwPollEvents();
 }
 
+void cleanupFramebuffer() {
+    if (framebuffer) {
+        glDeleteFramebuffers(1, &framebuffer);
+        framebuffer = 0;
+    }
+    if (textureColorbuffer) {
+        glDeleteTextures(1, &textureColorbuffer);
+        textureColorbuffer = 0;
+    }
+}
 
-void runVisualizer(GLFWwindow* window) {
-    int frameCounter = 0;
-    bool isFirstRender = true;
-    GLFWmonitor* lastMonitor = glfwGetWindowMonitor(window);
+void runVisualizer(GLFWwindow *window) {
+
+
+        int width, height;
+        glfwGetFramebufferSize(window, &width, &height);
+        projectm_set_window_size(getProjectMHandle(), width, height);
+
+
 
     try {
         while (!glfwWindowShouldClose(window)) {
-            auto startTime = std::chrono::high_resolution_clock::now();
-
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
 
             clearScreen();
-            showFPS(window);
-            handleFirstRender(window, isFirstRender);
             renderFrame();
-            frameCounter++;
 
-            RenderSettingsWindow(showSettingsWindow);
+
+            if (showSettingsWindow) {
+                RenderSettingsWindow(showSettingsWindow);
+            }
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-            // Detect monitor changes
-            GLFWmonitor* currentMonitor = glfwGetWindowMonitor(window);
-            if (currentMonitor != lastMonitor) {
-                std::cout << "Monitor changed. Reinitializing context." << std::endl;
-                // Reinitialize context or take appropriate action
-                glfwMakeContextCurrent(window);
-                lastMonitor = currentMonitor;
-            }
 
             if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
                 ImGui::UpdatePlatformWindows();
@@ -168,20 +183,14 @@ void runVisualizer(GLFWwindow* window) {
 
             swapBuffersAndPollEvents(window);
 
-            // Calculate frame time and sleep to limit frame rate
-            auto endTime = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double> frameDuration = endTime - startTime;
-            double frameTime = frameDuration.count();
-            double targetFrameTime = 1.0 / 60.0;  // Target 60 FPS
-            if (frameTime < targetFrameTime) {
-                std::this_thread::sleep_for(std::chrono::duration<double>(targetFrameTime - frameTime));
-            }
         }
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
         std::cerr << "Error during rendering: " << e.what() << std::endl;
     }
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    cleanupFramebuffer();
 }

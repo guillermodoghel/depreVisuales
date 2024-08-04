@@ -10,6 +10,9 @@ find_package(PkgConfig REQUIRED)
 
 set(PROJECTM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/include)
 set(PROJECTM_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/lib)
+#set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/dependencies/projectm/presets")
+set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/presets")
+add_definitions(-DPRESETS_PATH=\"${PRESETS_PATH_DEFAULT}\")
 
 # Find the projectM library
 find_library(PROJECTM_LIBRARY NAMES projectM-4 PATHS ${PROJECTM_LIBRARY_DIR})
@@ -42,7 +45,6 @@ include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
 
 # Link directories
 link_directories(${PROJECTM_LIBRARY_DIR})
-link_directories(${PORTAUDIO_LIBRARY_DIRS})
 
 # Set the RPATH to include the necessary directories
 set(CMAKE_BUILD_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib")

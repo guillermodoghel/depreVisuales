@@ -42,7 +42,6 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
 
         ImGui::Text("Search Presets");
         ImGui::SameLine();
-        // Make the search input field occupy the full width
         ImGui::PushItemWidth(-FLT_MIN);
         ImGui::InputText("##SearchPresets", searchBuffer, sizeof(searchBuffer));
         ImGui::PopItemWidth();
@@ -58,9 +57,8 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         }
 
         ImGui::Text("Presets:");
-        // Dynamically calculate the available space and set the height of the list box
         ImVec2 availableSpace = ImGui::GetContentRegionAvail();
-        if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, availableSpace.y - 300.0f))) { // Adjust the -300.0f to fit other widgets
+        if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, availableSpace.y - 300.0f))) {
             for (size_t i = 0; i < filteredPresets.size(); ++i) {
                 const bool isSelected = (filteredPresets[i] == currentPreset);
                 std::string truncatedPreset = truncatePath(filteredPresets[i]);
@@ -98,14 +96,14 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
             setShuffleState(shuffleEnabled);
         }
 
+        ImGui::SameLine();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
 
         ImGui::Text("Gain:");
-        // Make the slider occupy the full width
         ImGui::PushItemWidth(-FLT_MIN);
-        if (ImGui::SliderFloat("##Gain", &gainValue, 0.0f, 1.0f)) {
+        if (ImGui::SliderFloat("##Gain", &gainValue, -30.0f, 30.0f)) {
             setGain(gainValue);
         }
         ImGui::PopItemWidth();

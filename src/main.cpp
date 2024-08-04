@@ -7,6 +7,7 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+
 int main() {
     std::vector<std::string> audioInputList;
     std::vector<int> audioDeviceIndices;
@@ -29,6 +30,12 @@ int main() {
     }
 
     printOpenGLInfo();
+
+    if (!initFramebuffer(lastWidth, lastHeight)) {
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return 1;
+    }
 
     if (!initProjectM(lastWidth, lastHeight)) {
         glfwDestroyWindow(window);

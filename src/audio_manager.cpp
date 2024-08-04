@@ -7,10 +7,17 @@
 
 #define SAMPLE_RATE 44100
 
-float gain = 1.0;  // Initialize the gain variable
+#include <cmath>  // Include for log10 and pow functions
+
+float gain_dB = 0.0f;  // Gain in decibels, initialized to 0dB
 
 static PaStream *stream = nullptr;
 static int sampleRate = SAMPLE_RATE;  // Initialize sample rate with a default value
+
+// Function to convert dB gain to linear gain factor
+float dbToGain(float dB) {
+    return powf(10.0f, dB / 20.0f);
+}
 
 static int paCallback(const void *inputBuffer, void *outputBuffer,
                       unsigned long framesPerBuffer,
@@ -20,8 +27,9 @@ static int paCallback(const void *inputBuffer, void *outputBuffer,
     const float *in = (const float *)inputBuffer;
     if (inputBuffer != nullptr && getProjectMHandle() != nullptr) {
         float pcmData[framesPerBuffer * 2];
+        float linearGain = dbToGain(gain_dB);  // Convert dB gain to linear gain
         for (unsigned long i = 0; i < framesPerBuffer; ++i) {
-            float amplifiedSample = in[i] * gain;
+            float amplifiedSample = in[i] * linearGain;
             if (amplifiedSample > 1.0f) amplifiedSample = 1.0f;
             if (amplifiedSample < -1.0f) amplifiedSample = -1.0f;
             pcmData[2 * i] = amplifiedSample;
@@ -31,6 +39,9 @@ static int paCallback(const void *inputBuffer, void *outputBuffer,
     }
     return paContinue;
 }
+
+
+
 
 bool initPortAudio(int deviceIndex) {
     PaError err = Pa_Initialize();
@@ -133,6 +144,9 @@ void cleanUpPortAudio() {
     Pa_Terminate();
 }
 
-void setGain(float newGain) {
-    gain = newGain;
+// Example usage to set gain to +10dB
+void setGain(float dB) {
+    if (dB < -30.0f) dB = -30.0f;  // Clamp to -30dB
+    if (dB > 30.0f) dB = 30.0f;    // Clamp to +30dB
+    gain_dB = dB;
 }

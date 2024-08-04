@@ -2,8 +2,15 @@
 #include "utils.h"
 #include <iostream>
 #include <filesystem>
+#include <stdexcept>  // Include to handle std::bad_alloc
 
-#define PRESETS_PATH "/Users/estoussel/dev/depreVisuales/presets"
+
+#ifndef PRESETS_PATH
+#error "PRESETS_PATH is not defined"
+#endif
+
+const std::string presetsPath = PRESETS_PATH;
+
 
 static projectm_handle projectMHandle = nullptr;
 static projectm_playlist_handle playlistHandle = nullptr;
@@ -39,12 +46,13 @@ bool initProjectM(int width, int height) {
 
     playlistHandle = projectm_playlist_create(projectMHandle);
 
-    if (!checkPresetDirectory(PRESETS_PATH)) {
+    if (!checkPresetDirectory(presetsPath.c_str())) {
         return true;
     }
     std::cout << "Preset directory exists." << std::endl;
 
-    int added = projectm_playlist_add_path(playlistHandle, PRESETS_PATH, true, false);
+    projectm_playlist_set_shuffle(playlistHandle, false);
+    int added = projectm_playlist_add_path(playlistHandle, presetsPath.c_str(), true, false);
     if (added == 0) {
         std::cerr << "No presets found in the directory" << std::endl;
         return false;
@@ -53,7 +61,7 @@ bool initProjectM(int width, int height) {
 
     // Scan the presets for the settings window
     try {
-        scanPresets(PRESETS_PATH, presetList);
+        scanPresets(presetsPath.c_str(), presetList);
     } catch (const std::bad_alloc& e) {
         std::cerr << "Failed to scan presets: " << e.what() << std::endl;
         return false;
