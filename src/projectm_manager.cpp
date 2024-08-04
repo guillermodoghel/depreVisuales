@@ -4,19 +4,18 @@
 #include <filesystem>
 #include <stdexcept>  // Include to handle std::bad_alloc
 
-
-#ifndef PRESETS_PATH
-#error "PRESETS_PATH is not defined"
+#ifndef INFINITY
+#define INFINITY ((float)(1e+300 * 1e+300))
 #endif
 
 const std::string presetsPath = PRESETS_PATH;
-
 
 static projectm_handle projectMHandle = nullptr;
 static projectm_playlist_handle playlistHandle = nullptr;
 static std::vector<std::string> presetList;
 static std::string currentPreset;  // Variable to store the current preset name
 static bool shuffleEnabled = false; // Initialize shuffle state to false
+bool refreshPresets = false;  // Define the variable here
 
 namespace fs = std::__fs::filesystem;  // Ensure correct namespace for filesystem
 
@@ -51,7 +50,10 @@ bool initProjectM(int width, int height) {
     }
     std::cout << "Preset directory exists." << std::endl;
 
-    projectm_playlist_set_shuffle(playlistHandle, false);
+    projectm_set_preset_duration(projectMHandle, INFINITY);
+    projectm_set_fps(projectMHandle, 120);
+
+    projectm_playlist_set_retry_count(playlistHandle, 0);
     int added = projectm_playlist_add_path(playlistHandle, presetsPath.c_str(), true, false);
     if (added == 0) {
         std::cerr << "No presets found in the directory" << std::endl;
@@ -69,6 +71,8 @@ bool initProjectM(int width, int height) {
 
     playNextPreset();
     currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
+
+    projectm_playlist_set_preset_switched_event_callback(playlistHandle, presetSwitchedCallback, nullptr);
 
     return true;
 }
@@ -123,5 +127,24 @@ void setShuffleState(bool enabled) {
     if (playlistHandle != nullptr) {
         projectm_playlist_set_shuffle(playlistHandle, enabled);
         shuffleEnabled = enabled;
+    }
+}
+
+void updatePresetDuration(float duration, bool enabled) {
+    if (projectMHandle != nullptr) {
+        projectm_set_preset_duration(projectMHandle, enabled ? duration : INFINITY);
+    }
+}
+
+void presetSwitchedCallback(bool is_hard_cut, unsigned int index, void* user_data) {
+    if (index < presetList.size()) {
+        currentPreset = presetList[index];
+    }
+    refreshPresets = true;  // Set the flag to force refresh
+}
+
+void setBeatSensitivity(float sensitivity) {
+    if (projectMHandle != nullptr) {
+        projectm_set_beat_sensitivity(projectMHandle, sensitivity);
     }
 }

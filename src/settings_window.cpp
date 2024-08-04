@@ -11,8 +11,11 @@ static std::vector<int> deviceIndices;
 static std::vector<std::string> filteredPresets;
 static char searchBuffer[128] = "";
 static bool shuffleEnabled = false;
+static bool autoTransitionsEnabled = false;
+static int transitionSeconds = 30; // Default value
 static std::string currentAudioInput;
-static float gainValue = 1.0f;
+static float gainValue = 0.0f;
+static float beatSensitivity = 1.0f; // Default value
 
 void InitializeSettings(const std::vector<std::string>& presetList, const std::vector<std::string>& audioInputList, const std::vector<int>& indices, bool shuffleState) {
     audioInputs = audioInputList;
@@ -21,6 +24,7 @@ void InitializeSettings(const std::vector<std::string>& presetList, const std::v
     currentPreset = getCurrentPreset();
     shuffleEnabled = shuffleState;
     currentAudioInput = audioInputList.empty() ? "No audio input available" : audioInputList[0];
+    beatSensitivity = projectm_get_beat_sensitivity(getProjectMHandle());
 }
 
 std::string truncatePath(const std::string& path) {
@@ -36,7 +40,11 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         ImGui::Begin("Depre settings", &showSettingsWindow, ImGuiWindowFlags_NoCollapse);
         ImGui::SetWindowPos(ImVec2(100, 100), ImGuiCond_Once);
 
-        currentPreset = getCurrentPreset();
+        if (refreshPresets) {
+            currentPreset = getCurrentPreset();
+            refreshPresets = false;  // Reset the flag
+        }
+
         std::string truncatedPreset = truncatePath(currentPreset);
         ImGui::Text("Current Preset: %s", truncatedPreset.c_str());
 
@@ -58,7 +66,8 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
 
         ImGui::Text("Presets:");
         ImVec2 availableSpace = ImGui::GetContentRegionAvail();
-        if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, availableSpace.y - 300.0f))) {
+        float presetListHeight = autoTransitionsEnabled ? availableSpace.y - 450.0f : availableSpace.y - 300.0f;
+        if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, presetListHeight))) {
             for (size_t i = 0; i < filteredPresets.size(); ++i) {
                 const bool isSelected = (filteredPresets[i] == currentPreset);
                 std::string truncatedPreset = truncatePath(filteredPresets[i]);
@@ -92,11 +101,26 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         ImGui::Separator();
         ImGui::Spacing();
 
-        if (ImGui::Checkbox("Shuffle Enabled", &shuffleEnabled)) {
-            setShuffleState(shuffleEnabled);
+        if (ImGui::Checkbox("Auto Transitions", &autoTransitionsEnabled)) {
+            updatePresetDuration(transitionSeconds, autoTransitionsEnabled);
         }
 
-        ImGui::SameLine();
+        if (autoTransitionsEnabled) {
+            ImGui::Spacing();
+            ImGui::Text("Seconds:");
+            ImGui::SameLine();
+            ImGui::PushItemWidth(120); // Adjusted width for at least 5 figures
+            if (ImGui::InputInt("##TransitionSeconds", &transitionSeconds)) {
+                updatePresetDuration(transitionSeconds, autoTransitionsEnabled);
+            }
+            ImGui::PopItemWidth();
+
+            ImGui::Spacing();
+            if (ImGui::Checkbox("Shuffle Enabled", &shuffleEnabled)) {
+                setShuffleState(shuffleEnabled);
+            }
+        }
+
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -111,6 +135,25 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
+
+        // Add beat sensitivity slider
+        ImGui::Text("Beat Sensitivity:");
+        ImGui::PushItemWidth(-FLT_MIN);
+        if (ImGui::SliderFloat("##BeatSensitivity", &beatSensitivity, 0.0f, 2.0f)) {
+            setBeatSensitivity(beatSensitivity);
+        }
+        ImGui::PopItemWidth();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        // Add the label with the link
+        ImGui::Text("Coded with manija - source: ");
+        ImGui::SameLine();
+        if (ImGui::SmallButton("https://github.com/guillermodoghel/depreVisuales")) {
+            ImGui::SetClipboardText("https://github.com/guillermodoghel/depreVisuales");
+        }
 
         ImGui::End();
     }
