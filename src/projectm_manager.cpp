@@ -69,7 +69,6 @@ bool initProjectM(int width, int height) {
         return false;
     }
 
-    playNextPreset();
     currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
 
     projectm_playlist_set_preset_switched_event_callback(playlistHandle, presetSwitchedCallback, nullptr);

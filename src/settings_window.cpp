@@ -4,6 +4,15 @@
 #include <imgui.h>
 #include <vector>
 #include <string>
+#include <cstdlib>
+#ifdef _WIN32
+#include <windows.h>
+#elif __APPLE__
+#include <TargetConditionals.h>
+#include <CoreFoundation/CoreFoundation.h>
+#elif __linux__
+#include <stdlib.h>
+#endif
 
 std::string currentPreset;
 static std::vector<std::string> audioInputs;
@@ -35,6 +44,92 @@ std::string truncatePath(const std::string& path) {
     return path;
 }
 
+void RenderPresets() {
+    ImGui::Text("Presets:");
+    ImVec2 availableSpace = ImGui::GetContentRegionAvail();
+    float presetListHeight = autoTransitionsEnabled ? availableSpace.y - 450.0f : availableSpace.y - 300.0f;
+    if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, presetListHeight))) {
+        for (size_t i = 0; i < filteredPresets.size(); ++i) {
+            const bool isSelected = (filteredPresets[i] == currentPreset);
+            std::string truncatedPreset = truncatePath(filteredPresets[i]);
+            if (ImGui::Selectable(truncatedPreset.c_str(), isSelected)) {
+                setCurrentPreset(filteredPresets[i]);
+                currentPreset = filteredPresets[i];
+            }
+        }
+        ImGui::EndListBox();
+    }
+}
+
+void RenderAudioInputs() {
+    ImGui::Text("Current Audio Input: %s", currentAudioInput.c_str());
+    ImGui::Text("Audio Inputs:");
+    if (ImGui::BeginListBox("##audio_input_list", ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
+        for (size_t i = 0; i < audioInputs.size(); ++i) {
+            const bool isSelected = (audioInputs[i] == currentAudioInput);
+            if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
+                currentAudioInput = audioInputs[i];
+                setAudioInputDevice(deviceIndices[i]);
+            }
+        }
+        ImGui::EndListBox();
+    }
+}
+
+void RenderTransitions() {
+    if (ImGui::Checkbox("Auto Transitions", &autoTransitionsEnabled)) {
+        updatePresetDuration(transitionSeconds, autoTransitionsEnabled);
+    }
+    if (autoTransitionsEnabled) {
+        ImGui::Spacing();
+        ImGui::Text("Seconds:");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(120); // Adjusted width for at least 5 figures
+        if (ImGui::InputInt("##TransitionSeconds", &transitionSeconds)) {
+            updatePresetDuration(transitionSeconds, autoTransitionsEnabled);
+        }
+        ImGui::PopItemWidth();
+    }
+    ImGui::Spacing();
+    if (ImGui::Checkbox("Shuffle Enabled", &shuffleEnabled)) {
+        setShuffleState(shuffleEnabled);
+    }
+}
+
+void RenderGainAndSensitivity() {
+    ImGui::Text("Gain:");
+    ImGui::PushItemWidth(-FLT_MIN);
+    if (ImGui::SliderFloat("##Gain", &gainValue, -30.0f, 30.0f)) {
+        setGain(gainValue);
+    }
+    ImGui::PopItemWidth();
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::Text("Beat Sensitivity:");
+    ImGui::PushItemWidth(-FLT_MIN);
+    if (ImGui::SliderFloat("##BeatSensitivity", &beatSensitivity, 0.0f, 2.0f)) {
+        setBeatSensitivity(beatSensitivity);
+    }
+    ImGui::PopItemWidth();
+}
+
+void OpenURL(const char* url) {
+#ifdef _WIN32
+    ShellExecute(0, 0, url, 0, 0, SW_SHOW);
+#elif __APPLE__
+    std::string command = "open ";
+    command += url;
+    system(command.c_str());
+#elif __linux__
+    std::string command = "xdg-open ";
+    command += url;
+    system(command.c_str());
+#endif
+}
+
 void RenderSettingsWindow(bool& showSettingsWindow) {
     if (showSettingsWindow) {
         ImGui::Begin("Depre settings", &showSettingsWindow, ImGuiWindowFlags_NoCollapse);
@@ -56,7 +151,6 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         std::string searchString(searchBuffer);
 
         const auto& presets = getPresetList();
-
         filteredPresets.clear();
         for (const auto& preset : presets) {
             if (preset.find(searchString) != std::string::npos) {
@@ -64,86 +158,19 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
             }
         }
 
-        ImGui::Text("Presets:");
-        ImVec2 availableSpace = ImGui::GetContentRegionAvail();
-        float presetListHeight = autoTransitionsEnabled ? availableSpace.y - 450.0f : availableSpace.y - 300.0f;
-        if (ImGui::BeginListBox("##preset_list", ImVec2(-FLT_MIN, presetListHeight))) {
-            for (size_t i = 0; i < filteredPresets.size(); ++i) {
-                const bool isSelected = (filteredPresets[i] == currentPreset);
-                std::string truncatedPreset = truncatePath(filteredPresets[i]);
-                if (ImGui::Selectable(truncatedPreset.c_str(), isSelected)) {
-                    setCurrentPreset(filteredPresets[i]);
-                    currentPreset = filteredPresets[i];
-                }
-            }
-            ImGui::EndListBox();
-        }
-
+        RenderPresets();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
-
-        ImGui::Text("Current Audio Input: %s", currentAudioInput.c_str());
-
-        ImGui::Text("Audio Inputs:");
-        if (ImGui::BeginListBox("##audio_input_list", ImVec2(-FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing()))) {
-            for (size_t i = 0; i < audioInputs.size(); ++i) {
-                const bool isSelected = (audioInputs[i] == currentAudioInput);
-                if (ImGui::Selectable(audioInputs[i].c_str(), isSelected)) {
-                    currentAudioInput = audioInputs[i];
-                    setAudioInputDevice(deviceIndices[i]);
-                }
-            }
-            ImGui::EndListBox();
-        }
-
+        RenderAudioInputs();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
-
-        if (ImGui::Checkbox("Auto Transitions", &autoTransitionsEnabled)) {
-            updatePresetDuration(transitionSeconds, autoTransitionsEnabled);
-        }
-
-        if (autoTransitionsEnabled) {
-            ImGui::Spacing();
-            ImGui::Text("Seconds:");
-            ImGui::SameLine();
-            ImGui::PushItemWidth(120); // Adjusted width for at least 5 figures
-            if (ImGui::InputInt("##TransitionSeconds", &transitionSeconds)) {
-                updatePresetDuration(transitionSeconds, autoTransitionsEnabled);
-            }
-            ImGui::PopItemWidth();
-
-            ImGui::Spacing();
-            if (ImGui::Checkbox("Shuffle Enabled", &shuffleEnabled)) {
-                setShuffleState(shuffleEnabled);
-            }
-        }
-
+        RenderTransitions();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
-
-        ImGui::Text("Gain:");
-        ImGui::PushItemWidth(-FLT_MIN);
-        if (ImGui::SliderFloat("##Gain", &gainValue, -30.0f, 30.0f)) {
-            setGain(gainValue);
-        }
-        ImGui::PopItemWidth();
-
-        ImGui::Spacing();
-        ImGui::Separator();
-        ImGui::Spacing();
-
-        // Add beat sensitivity slider
-        ImGui::Text("Beat Sensitivity:");
-        ImGui::PushItemWidth(-FLT_MIN);
-        if (ImGui::SliderFloat("##BeatSensitivity", &beatSensitivity, 0.0f, 2.0f)) {
-            setBeatSensitivity(beatSensitivity);
-        }
-        ImGui::PopItemWidth();
-
+        RenderGainAndSensitivity();
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::Spacing();
@@ -152,7 +179,7 @@ void RenderSettingsWindow(bool& showSettingsWindow) {
         ImGui::Text("Coded with manija - source: ");
         ImGui::SameLine();
         if (ImGui::SmallButton("https://github.com/guillermodoghel/depreVisuales")) {
-            ImGui::SetClipboardText("https://github.com/guillermodoghel/depreVisuales");
+            OpenURL("https://github.com/guillermodoghel/depreVisuales");
         }
 
         ImGui::End();
