@@ -2,7 +2,7 @@
 
 Las visuales más depre de GitHub.
 
-DepreVisuales is a visualization tool that implements projectM to render audio from the default audio input source.
+DepreVisuales is a visualization tool that implements projectM to render audio from an audio input source.
 projectM is an open-source project that reimplements the
 esteemed [Winamp Milkdrop](https://en.wikipedia.org/wiki/MilkDrop) by Geiss in a modern, cross-platform reusable
 library.
