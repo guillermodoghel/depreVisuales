@@ -50,11 +50,9 @@ include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends)
 # Link directories
 link_directories(${PROJECTM_LIBRARY_DIR})
 
-# Set the RPATH to include the necessary directories
-set(CMAKE_BUILD_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib")
-set(CMAKE_INSTALL_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib")
-
-# Ensure RPATH is used when installing
+# Set the RPATH to include the necessary directories without cyclic dependencies
+set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Add source files
@@ -89,7 +87,6 @@ set(HEADERS
 # Add executable and link libraries
 add_executable(DepreVisuales ${SOURCES} ${HEADERS})
 target_link_libraries(DepreVisuales
-        ${PROJECTM_LIBRARY}
         ${PORTAUDIO_LIBRARIES}
         ${OPENGL_LIBRARIES}
         glfw
@@ -97,4 +94,11 @@ target_link_libraries(DepreVisuales
         ${FREETYPE_LIBRARIES}
         ${PROJECTM_LIBRARY_DIR}/libprojectM-4.4.1.1.dylib
         ${PROJECTM_LIBRARY_DIR}/libprojectM-4-playlist.4.1.1.dylib
+)
+
+# Set the target properties to avoid cyclic RPATH issues
+set_target_properties(DepreVisuales PROPERTIES
+        BUILD_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib"
+        INSTALL_RPATH "${PROJECTM_LIBRARY_DIR};/usr/local/lib;/opt/homebrew/lib"
+        INSTALL_RPATH_USE_LINK_PATH TRUE
 )
