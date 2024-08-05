@@ -1,5 +1,7 @@
 # DepreVisuales
 
+---
+
 Las visuales más depre de GitHub.
 
 DepreVisuales is a visualization tool that implements projectM to render audio from an audio input source.
@@ -55,19 +57,23 @@ More instructions here https://github.com/projectM-visualizer/projectm/wiki/Buil
    make install
    ```
 
-//line
+---
 
 
 ### This repo included 9000+ presets. Build, run and enjoy.
 
 ![Screen 1](./docs/screen-1.png)
 
-![Screen 1](./docs/screen-2.png)
+![Screen 2](./docs/screen-2.png)
 
 Press spacebar to change the preset manually.
 
 Press tab to open the settings window.
 
-![Screen 1](./docs/settings.png)
+![Settings](./docs/settings.png)
 
+
+---
+
+Made with ❤️ by [guillermodoghel](https://doghel.com.ar/)
 
