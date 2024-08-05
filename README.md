@@ -64,9 +64,6 @@ More instructions here https://github.com/projectM-visualizer/projectm/wiki/Buil
 
 ![Screen 1](./docs/screen-2.png)
 
-To filter glitchy presets, the program automatically changes the preset if the framerate drops below 30fps, or if the
-screen is all black.
-
 Press spacebar to change the preset manually.
 
 Press tab to open the settings window.
