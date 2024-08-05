@@ -12,7 +12,7 @@ set(PROJECTM_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/include)
 set(PROJECTM_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/lib)
 
 #set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/dependencies/projectm/presets")
-set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/presets")
+set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/dependencies/presets-cream-of-the-crop")
 add_definitions(-DPRESETS_PATH=\"${PRESETS_PATH_DEFAULT}\")
 
 set(TEXTURES_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/dependencies/presets-milkdrop-texture-pack/textures")
