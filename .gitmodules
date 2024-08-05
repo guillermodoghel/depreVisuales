@@ -10,3 +10,6 @@
 [submodule "dependencies/presets-milkdrop-texture-pack"]
 	path = dependencies/presets-milkdrop-texture-pack
 	url = git@github.com:projectM-visualizer/presets-milkdrop-texture-pack.git
+[submodule "dependencies/presets-cream-of-the-crop"]
+	path = dependencies/presets-cream-of-the-crop
+	url = https://github.com/projectM-visualizer/presets-cream-of-the-crop
