@@ -9,25 +9,26 @@
 #endif
 
 const std::string presetsPath = PRESETS_PATH;
+const std::string texturesPath = TEXTURES_PATH;
 
 static projectm_handle projectMHandle = nullptr;
 static projectm_playlist_handle playlistHandle = nullptr;
 static std::vector<std::string> presetList;
-static std::string currentPreset;  // Variable to store the current preset name
+static std::string currentPreset; // Variable to store the current preset name
 static bool shuffleEnabled = false; // Initialize shuffle state to false
-bool refreshPresets = false;  // Define the variable here
+bool refreshPresets = false; // Define the variable here
 
-namespace fs = std::__fs::filesystem;  // Ensure correct namespace for filesystem
+namespace fs = std::__fs::filesystem; // Ensure correct namespace for filesystem
 
-void scanPresets(const std::string& directory, std::vector<std::string>& presets) {
+void scanPresets(const std::string &directory, std::vector<std::string> &presets) {
     try {
-        for (const auto& entry : fs::recursive_directory_iterator(directory)) {
+        for (const auto &entry: fs::recursive_directory_iterator(directory)) {
             if (entry.is_regular_file() && entry.path().extension() == ".milk") {
                 presets.push_back(entry.path().string());
             }
         }
         std::sort(presets.begin(), presets.end());
-    } catch (const std::bad_alloc& e) {
+    } catch (const std::bad_alloc &e) {
         std::cerr << "Memory allocation error: " << e.what() << std::endl;
         throw;
     }
@@ -52,8 +53,13 @@ bool initProjectM(int width, int height) {
 
     projectm_set_preset_duration(projectMHandle, INFINITY);
     projectm_set_fps(projectMHandle, 120);
-
     projectm_playlist_set_retry_count(playlistHandle, 0);
+
+    const char* texture_paths[] = {texturesPath.c_str()};
+    size_t path_count = 1;
+
+    projectm_set_texture_search_paths(projectMHandle, texture_paths, path_count);
+
     int added = projectm_playlist_add_path(playlistHandle, presetsPath.c_str(), true, false);
     if (added == 0) {
         std::cerr << "No presets found in the directory" << std::endl;
@@ -64,12 +70,12 @@ bool initProjectM(int width, int height) {
     // Scan the presets for the settings window
     try {
         scanPresets(presetsPath.c_str(), presetList);
-    } catch (const std::bad_alloc& e) {
+    } catch (const std::bad_alloc &e) {
         std::cerr << "Failed to scan presets: " << e.what() << std::endl;
         return false;
     }
 
-    currentPreset = presetList.empty() ? "No presets available" : presetList[0];  // Initialize the current preset
+    currentPreset = presetList.empty() ? "No presets available" : presetList[0]; // Initialize the current preset
 
     projectm_playlist_set_preset_switched_event_callback(playlistHandle, presetSwitchedCallback, nullptr);
 
@@ -90,7 +96,7 @@ projectm_playlist_handle getPlaylistHandle() {
     return playlistHandle;
 }
 
-const std::vector<std::string>& getPresetList() {
+const std::vector<std::string> &getPresetList() {
     return presetList;
 }
 
@@ -111,7 +117,7 @@ void playNextPreset() {
     }
 }
 
-void setCurrentPreset(const std::string& preset) {
+void setCurrentPreset(const std::string &preset) {
     if (playlistHandle != nullptr) {
         auto it = std::find(presetList.begin(), presetList.end(), preset);
         if (it != presetList.end()) {
@@ -135,11 +141,11 @@ void updatePresetDuration(float duration, bool enabled) {
     }
 }
 
-void presetSwitchedCallback(bool is_hard_cut, unsigned int index, void* user_data) {
+void presetSwitchedCallback(bool is_hard_cut, unsigned int index, void *user_data) {
     if (index < presetList.size()) {
         currentPreset = presetList[index];
     }
-    refreshPresets = true;  // Set the flag to force refresh
+    refreshPresets = true; // Set the flag to force refresh
 }
 
 void setBeatSensitivity(float sensitivity) {

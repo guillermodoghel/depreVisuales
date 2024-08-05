@@ -13,8 +13,10 @@ set(PROJECTM_LIBRARY_DIR ${CMAKE_SOURCE_DIR}/dependencies/projectm/bin/lib)
 
 #set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/dependencies/projectm/presets")
 set(PRESETS_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/presets")
-
 add_definitions(-DPRESETS_PATH=\"${PRESETS_PATH_DEFAULT}\")
+
+set(TEXTURES_PATH_DEFAULT "${CMAKE_SOURCE_DIR}/dependencies/presets-milkdrop-texture-pack/textures")
+add_definitions(-DTEXTURES_PATH=\"${TEXTURES_PATH_DEFAULT}\")
 
 # Find the projectM library
 find_library(PROJECTM_LIBRARY NAMES projectM-4 PATHS ${PROJECTM_LIBRARY_DIR})
