@@ -11,6 +11,8 @@
 #include <imgui_impl_opengl3.h>
 #include <chrono>
 
+#include "keyboard.h"
+
 
 int lastWidth = 800;
 int lastHeight = 600;
@@ -88,17 +90,6 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glBindTexture(GL_TEXTURE_2D, 0);
     if (getProjectMHandle() != nullptr) {
         projectm_set_window_size(getProjectMHandle(), width, height);
-    }
-}
-
-void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        if (getProjectMHandle() != nullptr) {
-            playNextPreset();
-        }
-    }
-    if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
-        showSettingsWindow = !showSettingsWindow;
     }
 }
 

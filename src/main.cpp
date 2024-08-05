@@ -7,6 +7,9 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 
+//
+// Created by Guillermo Doghel on 2/8/24.
+//
 
 int main() {
     std::vector<std::string> audioInputList;
