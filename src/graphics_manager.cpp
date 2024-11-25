@@ -20,6 +20,7 @@ bool showSettingsWindow = false; // Define the variable
 
 GLuint framebuffer = 0;
 GLuint textureColorbuffer = 0;
+GLuint VBO, VAO;
 
 bool initGLFW() {
     if (!glfwInit()) {
@@ -41,6 +42,7 @@ GLFWwindow *createWindow(int width, int height, const char *title) {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
+    glfwSwapInterval(1); // Enable VSync
 
     return window;
 }
@@ -94,11 +96,15 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 
 bool isFrameAllBlack(int width, int height) {
-    std::vector<GLubyte> pixels(width * height * 3); // Assuming 3 bytes per pixel (RGB)
-    glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, pixels.data());
-
-    for (size_t i = 0; i < pixels.size(); i += 3) {
-        if (pixels[i] != 0 || pixels[i + 1] != 0 || pixels[i + 2] != 0) {
+    const int sampleSize = 64; // Check fewer pixels
+    std::vector<GLubyte> pixels(sampleSize * 3);
+    
+    for (int i = 0; i < sampleSize; i++) {
+        int x = rand() % width;
+        int y = rand() % height;
+        glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixels[i * 3]);
+        
+        if (pixels[i * 3] != 0 || pixels[i * 3 + 1] != 0 || pixels[i * 3 + 2] != 0) {
             return false;
         }
     }
@@ -184,4 +190,24 @@ void runVisualizer(GLFWwindow *window) {
     ImGui::DestroyContext();
 
     cleanupFramebuffer();
+}
+
+void setupBuffers() {
+    float vertices[] = {
+        // Full screen quad coordinates
+        -1.0f,  1.0f,
+        -1.0f, -1.0f,
+         1.0f, -1.0f,
+         1.0f,  1.0f
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+    
+    glBindVertexArray(VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+    glEnableVertexAttribArray(0);
 }
