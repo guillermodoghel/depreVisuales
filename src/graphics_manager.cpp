@@ -22,6 +22,10 @@ GLuint framebuffer = 0;
 GLuint textureColorbuffer = 0;
 GLuint VBO, VAO;
 
+// Add texture size tracking
+static int currentTextureWidth = 0;
+static int currentTextureHeight = 0;
+
 bool initGLFW() {
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
@@ -33,6 +37,10 @@ bool initGLFW() {
     return true;
 }
 
+void setVSync(bool enable) {
+    glfwSwapInterval(enable ? 1 : 0);
+}
+
 GLFWwindow *createWindow(int width, int height, const char *title) {
     GLFWwindow *window = glfwCreateWindow(width, height, title, NULL, NULL);
     if (!window) {
@@ -42,7 +50,7 @@ GLFWwindow *createWindow(int width, int height, const char *title) {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
-    glfwSwapInterval(1); // Enable VSync
+    setVSync(false); // Disable VSync by default
 
     return window;
 }
@@ -58,17 +66,24 @@ bool initGLEW() {
 }
 
 bool initFramebuffer(int width, int height) {
-    glGenFramebuffers(1, &framebuffer);
+    if (framebuffer == 0) {
+        glGenFramebuffers(1, &framebuffer);
+        glGenTextures(1, &textureColorbuffer);
+    }
+    
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-
-    // Create a color attachment texture
-    glGenTextures(1, &textureColorbuffer);
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    
+    // Only reallocate texture if size changed
+    if (width != currentTextureWidth || height != currentTextureHeight) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        currentTextureWidth = width;
+        currentTextureHeight = height;
+    }
+    
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
+    
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
@@ -87,22 +102,38 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     lastWidth = width;
     lastHeight = height;
     glViewport(0, 0, width, height);
-    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    // Only update texture if size changed
+    if (width != currentTextureWidth || height != currentTextureHeight) {
+        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+        currentTextureWidth = width;
+        currentTextureHeight = height;
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    
     if (getProjectMHandle() != nullptr) {
         projectm_set_window_size(getProjectMHandle(), width, height);
     }
 }
 
 bool isFrameAllBlack(int width, int height) {
-    const int sampleSize = 64; // Check fewer pixels
-    std::vector<GLubyte> pixels(sampleSize * 3);
+    static const int sampleSize = 64; // Make constant
+    static std::vector<GLubyte> pixels(sampleSize * 3);  // Static buffer to avoid reallocations
+    static std::vector<std::pair<int, int>> samplePoints(sampleSize);  // Pre-calculate sample points
+    static bool initialized = false;
+    
+    if (!initialized) {
+        // Initialize sample points once
+        for (int i = 0; i < sampleSize; i++) {
+            samplePoints[i].first = i * (width / sampleSize);
+            samplePoints[i].second = i * (height / sampleSize);
+        }
+        initialized = true;
+    }
     
     for (int i = 0; i < sampleSize; i++) {
-        int x = rand() % width;
-        int y = rand() % height;
-        glReadPixels(x, y, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixels[i * 3]);
+        glReadPixels(samplePoints[i].first, samplePoints[i].second, 1, 1, GL_RGB, GL_UNSIGNED_BYTE, &pixels[i * 3]);
         
         if (pixels[i * 3] != 0 || pixels[i * 3 + 1] != 0 || pixels[i * 3 + 2] != 0) {
             return false;
@@ -119,7 +150,13 @@ void clearScreen() {
 
 
 void renderFrame() {
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+    static GLuint lastBoundFB = 0;
+    
+    if (lastBoundFB != framebuffer) {
+        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        lastBoundFB = framebuffer;
+    }
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (getProjectMHandle() != nullptr) {
@@ -127,7 +164,10 @@ void renderFrame() {
         checkGLError("during rendering");
     }
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    if (lastBoundFB != 0) {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        lastBoundFB = 0;
+    }
 }
 
 void swapBuffersAndPollEvents(GLFWwindow *window) {
@@ -147,39 +187,51 @@ void cleanupFramebuffer() {
 }
 
 void runVisualizer(GLFWwindow *window) {
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    projectm_set_window_size(getProjectMHandle(), width, height);
 
-
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-        projectm_set_window_size(getProjectMHandle(), width, height);
-
-
+    // Frame timing variables
+    double lastTime = glfwGetTime();
+    int frameCount = 0;
+    double fpsUpdateInterval = 0.5; // Update FPS every 0.5 seconds
 
     try {
         while (!glfwWindowShouldClose(window)) {
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui::NewFrame();
+            double currentTime = glfwGetTime();
+            frameCount++;
+
+            // Calculate FPS every 0.5 seconds
+            if (currentTime - lastTime >= fpsUpdateInterval) {
+                double fps = frameCount / (currentTime - lastTime);
+                std::cout << "FPS: " << fps << std::endl;
+                frameCount = 0;
+                lastTime = currentTime;
+            }
+
+            // Only setup ImGui if settings window is shown
+            if (showSettingsWindow) {
+                ImGui_ImplOpenGL3_NewFrame();
+                ImGui_ImplGlfw_NewFrame();
+                ImGui::NewFrame();
+            }
 
             clearScreen();
             renderFrame();
 
-
             if (showSettingsWindow) {
                 RenderSettingsWindow(showSettingsWindow);
-            }
+                ImGui::Render();
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-            ImGui::Render();
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-            if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
-                ImGui::UpdatePlatformWindows();
-                ImGui::RenderPlatformWindowsDefault();
-                glfwMakeContextCurrent(window);
+                if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+                    ImGui::UpdatePlatformWindows();
+                    ImGui::RenderPlatformWindowsDefault();
+                    glfwMakeContextCurrent(window);
+                }
             }
 
             swapBuffersAndPollEvents(window);
-
         }
     } catch (const std::exception &e) {
         std::cerr << "Error during rendering: " << e.what() << std::endl;
